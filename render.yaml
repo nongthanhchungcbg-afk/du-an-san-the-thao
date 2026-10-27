@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: du-an-san-the-thao
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python -m app.seed_data"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PROJECT_NAME
+        value: "Hệ Thống Quản Lý Sân Thể Thao Tích Hợp AI - Nhóm 03"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
