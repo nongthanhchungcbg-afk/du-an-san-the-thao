@@ -13,4 +13,16 @@ if __name__ == "__main__":
     print(f"  HE THONG QUAN LY SAN THE THAO KHOI DONG TAI PORT: {port}")
     print(f"============================================================")
     sys.stdout.flush()
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, log_level="info")
+
+    try:
+        from app.main import app
+        print("-> FastAPI app imported successfully!")
+        sys.stdout.flush()
+    except Exception as e:
+        print(f"-> ERROR IMPORTING APP: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.exit(1)
+
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
