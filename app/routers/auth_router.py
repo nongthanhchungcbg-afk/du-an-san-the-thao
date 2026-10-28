@@ -1,6 +1,7 @@
 import random
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
@@ -72,6 +73,37 @@ def login(login_data: LoginRequest, request: Request, db: Session = Depends(get_
         user_id=user.id,
         username=user.username,
         action="Đăng nhập hệ thống thành công",
+        role=user.role.value,
+        ip_address=client_ip
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(user)
+
+    access_token = create_access_token(data={"sub": user.username, "role": user.role.value})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+
+@router.post("/token", response_model=Token)
+def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(
+        or_(User.username == form_data.username, User.email == form_data.username)
+    ).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sai username hoặc password")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tài khoản đang bị tạm khóa")
+
+    user.last_login_at = datetime.utcnow()
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    log = UserActivityLog(
+        user_id=user.id,
+        username=user.username,
+        action="Đăng nhập Swagger UI thành công",
         role=user.role.value,
         ip_address=client_ip
     )
