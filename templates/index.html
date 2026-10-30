@@ -36,7 +36,7 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/css/custom.css?v=20260927_v2002">
+    <link rel="stylesheet" href="/static/css/custom.css?v=20261030_stadium_email">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
@@ -47,9 +47,9 @@
             <!-- LEFT: SLIDE MENU BUTTON & LOGO BRAND NAME -->
             <div class="flex items-center space-x-2.5 sm:space-x-3.5 flex-shrink-0">
                 <!-- ☰ SLIDE DRAWER MENU BUTTON -->
-                <button type="button" onclick="openSlideDrawer()" id="btn-open-drawer" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 font-extrabold text-xs flex items-center gap-2 transition transform hover:scale-105 cursor-pointer shadow-md" title="Mở danh mục chức năng">
+                <button type="button" onclick="openSlideDrawer()" id="btn-open-drawer" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 font-extrabold text-xs flex items-center gap-2 transition transform hover:scale-105 cursor-pointer shadow-md" title="Mở danh mục chức năng" aria-label="Mở danh mục chức năng">
                     <i class="fa-solid fa-bars text-sm text-emerald-400"></i>
-                    <span class="font-extrabold tracking-wide">Danh Mục Chức Năng</span>
+                    <span class="font-extrabold tracking-wide hidden lg:inline">Danh Mục Chức Năng</span>
                 </button>
 
                 <!-- LOGO & BRAND TITLE -->
@@ -59,8 +59,8 @@
                     </div>
                     <div class="flex-shrink-0">
                         <h1 class="text-xs sm:text-sm md:text-base font-black tracking-tight text-white flex items-center gap-1.5 whitespace-nowrap leading-tight">
-                            <span>QUẢN LÝ SÂN THỂ THAO</span>
-                            <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-200 to-amber-300 font-extrabold whitespace-nowrap">AI - NHÓM 03</span>
+                            <span class="brand-main-title">QUẢN LÝ SÂN THỂ THAO</span>
+                            <span class="brand-team-title bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-200 to-amber-300 font-extrabold whitespace-nowrap">AI - NHÓM 03</span>
                         </h1>
                         <p class="text-[9px] sm:text-[10px] text-slate-400 font-medium hidden lg:block whitespace-nowrap leading-none mt-0.5">Hệ Thống Đặt Sân Tự Động & Trợ Lý AI Thông Minh | ICTU</p>
                     </div>
@@ -82,11 +82,11 @@
 
                 <!-- GUEST AUTH BUTTONS -->
                 <div id="guest-auth-buttons" class="flex items-center space-x-1.5 flex-shrink-0">
-                    <button onclick="openAuthModal('login')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-700 transition whitespace-nowrap">
-                        <i class="fa-solid fa-right-to-bracket mr-1 text-emerald-400"></i> Đăng nhập
+                    <button onclick="openAuthModal('login')" aria-label="Đăng nhập" title="Đăng nhập" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-700 transition whitespace-nowrap">
+                        <i class="fa-solid fa-right-to-bracket mr-1 text-emerald-400"></i><span class="hidden lg:inline">Đăng nhập</span>
                     </button>
-                    <button onclick="openAuthModal('register')" class="bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-lg shadow-rose-500/20 transition transform hover:scale-[1.02] whitespace-nowrap">
-                        <i class="fa-solid fa-user-plus mr-1"></i> Đăng ký
+                    <button onclick="openAuthModal('register')" aria-label="Đăng ký" title="Đăng ký" class="bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-lg shadow-rose-500/20 transition transform hover:scale-[1.02] whitespace-nowrap">
+                        <i class="fa-solid fa-user-plus mr-1"></i><span class="hidden lg:inline">Đăng ký</span>
                     </button>
                 </div>
             </div>
@@ -304,34 +304,20 @@
     <div class="flex-1 w-full flex flex-col">
 
         <!-- ========================================================================= -->
-        <!-- TAB 0: TRANG CHỦ (HERO VIDEO NỀN SÁNG RÕ NÉT + NÚT BÁO CÁO DỰ ÁN) -->
+        <!-- TAB 0: TRANG CHỦ (HERO ẢNH NỀN + NÚT BÁO CÁO DỰ ÁN) -->
         <!-- ========================================================================= -->
         <section id="tab-home" class="tab-pane flex flex-col w-full">
             
-            <!-- HERO SECTION WITH VIDEO BACKGROUND -->
-            <div class="relative w-full min-h-[580px] lg:min-h-[640px] flex items-center justify-center overflow-hidden">
-                <!-- VIDEO BACKGROUND -->
-                <video id="bg-hero-video" muted loop playsinline preload="auto" poster="/static/images/pitch-01.jpg" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover z-0 filter brightness-[0.80] contrast-[1.1]">
-                    <source src="/static/videos/nensanthethao.mp4" type="video/mp4">
-                </video>
+            <!-- HERO SECTION WITH STATIC BACKGROUND -->
+            <div class="hero-banner relative w-full flex items-center justify-center overflow-hidden">
+                <div id="bg-hero-image" class="absolute inset-0 z-0" role="img" aria-label="Sân vận động điền kinh"></div>
 
                 <!-- MULTI-LAYER OVERLAYS SÁNG RÕ NÉT -->
                 <div id="hero-gradient-overlay" class="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/40 to-slate-950 z-10"></div>
                 <div id="hero-radial-overlay" class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-slate-950/90 z-10"></div>
 
-                <!-- VIDEO CONTROLS -->
-                <div class="absolute bottom-4 right-4 z-20 flex items-center space-x-2 bg-slate-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700/80 text-xs text-slate-300 shadow-xl">
-                    <button onclick="toggleVideoMute()" id="btn-video-mute" class="hover:text-emerald-400 transition" title="Bật/Tắt âm thanh">
-                        <i class="fa-solid fa-volume-xmark" id="icon-video-mute"></i>
-                    </button>
-                    <span class="text-slate-600">|</span>
-                    <button onclick="toggleVideoPlay()" id="btn-video-play" class="hover:text-emerald-400 transition" title="Phát video nền">
-                        <i class="fa-solid fa-play" id="icon-video-play"></i>
-                    </button>
-                </div>
-
                 <!-- HERO CONTENT SÁNG RÕ NÉT VỚI TIÊU ĐỀ BÁO CÁO DỰ ÁN -->
-                <div class="relative z-20 max-w-5xl mx-auto px-4 py-10 text-center space-y-6 animate-in fade-in duration-500">
+                <div class="relative z-20 w-full max-w-6xl mx-auto px-4 py-10 text-center space-y-6 animate-in fade-in duration-500">
                     
                     <!-- BADGE DỰ ÁN HỌC PHẦN -->
                     <div id="hero-project-badge" class="inline-flex items-center space-x-2.5 bg-white text-emerald-950 border-2 border-emerald-400 rounded-full px-5 py-2 shadow-2xl font-black">
@@ -557,7 +543,7 @@
                         <div>
                             <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">2. Thông tin người đặt sân & nhận thông báo:</label>
                             <div class="space-y-2">
-                                <div class="grid grid-cols-2 gap-2">
+                                <div id="matrix-customer-fields" class="grid grid-cols-2 gap-2">
                                     <div>
                                         <input type="text" id="matrix-cust-name" required placeholder="Họ và tên *" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
                                     </div>
@@ -732,7 +718,7 @@
                                 <button type="button" onclick="openSystemOutboxModal()" class="text-[11px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 font-bold px-2.5 py-1 rounded-xl transition flex items-center gap-1">
                                     <i class="fa-solid fa-inbox"></i> Hộp Thư Hệ Thống (Local Outbox)
                                 </button>
-                                <button type="button" onclick="loadMyRecentBookings()" class="text-[11px] text-emerald-600 hover:text-emerald-500 font-bold flex items-center gap-1">
+                                <button type="button" onclick="runButtonLoading(this, () => loadMyRecentBookings())" class="text-[11px] text-emerald-600 hover:text-emerald-500 font-bold flex items-center gap-1">
                                     <i class="fa-solid fa-rotate"></i> Làm mới
                                 </button>
                             </div>
@@ -864,7 +850,7 @@
                         <h2 class="text-lg font-black text-white flex items-center"><i class="fa-solid fa-chart-pie mr-2 text-emerald-400"></i> Báo Cáo Hoạt Động & Doanh Thu Thời Gian Thực</h2>
                         <p class="text-xs text-slate-400">Tổng hợp doanh thu, công suất sử dụng và phân bổ môn chơi</p>
                     </div>
-                    <button onclick="loadDashboardStats()" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-arrows-rotate mr-1 text-emerald-400"></i> Làm mới</button>
+                    <button onclick="runButtonLoading(this, () => loadDashboardStats())" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-arrows-rotate mr-1 text-emerald-400"></i> Làm mới</button>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -912,7 +898,7 @@
                                 <p class="text-xs text-slate-500 dark:text-slate-400">Phân tích công suất sử dụng sân và tự động đề xuất chương trình khuyến mãi tăng doanh thu</p>
                             </div>
                         </div>
-                        <button type="button" onclick="loadAIDashboardSummary(true)" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow transition flex items-center gap-1.5">
+                        <button type="button" onclick="runButtonLoading(this, () => loadAIDashboardSummary(true))" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow transition flex items-center gap-1.5">
                             <i class="fa-solid fa-arrows-rotate"></i> Làm Mới Phân Tích
                         </button>
                     </div>
@@ -946,7 +932,11 @@
                         <h2 class="text-base font-bold text-white flex items-center"><i class="fa-solid fa-futbol mr-2 text-emerald-400"></i> Quản Lý Danh Sách Sân & Bảng Giá Chi Tiết</h2>
                         <p class="text-xs text-slate-400">Thông tin 8 sân đa năng và địa chỉ các cơ sở trực thuộc</p>
                     </div>
-                    <select id="filter-sport-type" onchange="loadPitches()" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="runButtonLoading(this, () => loadPitches(true))" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl border border-slate-700 transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate mr-1 text-emerald-400"></i> Tải lại
+                        </button>
+                        <select id="filter-sport-type" onchange="loadPitches()" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200">
                         <option value="">Tất cả môn</option>
                         <option value="FOOTBALL">Bóng đá</option>
                         <option value="BADMINTON">Cầu lông</option>
@@ -967,7 +957,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <select id="admin-timeslot-pitch" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200"></select>
                         <input type="date" id="admin-timeslot-date" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200">
-                        <button type="button" onclick="loadAdminTimeSlots()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl border border-slate-700"><i class="fa-solid fa-rotate mr-1"></i>Tải khung giờ</button>
+                        <button type="button" onclick="runButtonLoading(this, () => loadAdminTimeSlots())" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl border border-slate-700"><i class="fa-solid fa-rotate mr-1"></i>Tải khung giờ</button>
                     </div>
                 </div>
 
@@ -1002,7 +992,7 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button type="button" onclick="loadPricingTable()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
+                        <button type="button" onclick="runButtonLoading(this, () => loadPricingTable())" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
                             <i class="fa-solid fa-arrows-rotate text-emerald-500"></i> Làm Mới
                         </button>
                         <button type="button" onclick="openEditPricingModal()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-1.5 cursor-pointer">
@@ -1035,6 +1025,9 @@
                     </div>
                     <div class="flex items-center space-x-2">
                         <div class="flex items-center gap-2 flex-wrap">
+                            <button type="button" onclick="runButtonLoading(this, () => loadBookings(true))" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-rotate mr-1 text-emerald-400"></i> Tải Lại
+                            </button>
                             <button type="button" onclick="setBookingDateFilter('')" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 transition shadow-sm flex items-center gap-1.5">
                                 <i class="fa-solid fa-list-check text-teal-400"></i> Tất Cả Ngày
                             </button>
@@ -1067,7 +1060,7 @@
                         <h2 class="text-base font-bold text-white flex items-center"><i class="fa-solid fa-file-invoice-dollar mr-2 text-emerald-400"></i> Quản Lý Thanh Toán & Hóa Đơn Điện Tử</h2>
                         <p class="text-xs text-slate-400">Xác nhận giao dịch chuyển khoản và gửi hóa đơn điện tử tự động về email khách hàng</p>
                     </div>
-                    <button onclick="loadPayments(true)" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
+                    <button onclick="runButtonLoading(this, () => loadPayments(true))" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-x-auto shadow-lg">
                     <table class="w-full text-left text-xs text-slate-300">
@@ -1088,7 +1081,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="openAddMaintenanceModal()" class="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> <span>Lên Lịch Bảo Trì Mới</span></button>
-                        <button onclick="loadMaintenances(true)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl border border-slate-700 transition flex items-center gap-1"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
+                        <button onclick="runButtonLoading(this, () => loadMaintenances(true))" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl border border-slate-700 transition flex items-center gap-1"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
                     </div>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-x-auto shadow-lg">
@@ -1118,7 +1111,7 @@
                             <h2 class="text-base font-bold text-indigo-400 flex items-center"><i class="fa-solid fa-users-gear mr-2"></i> Danh Sách Tài Khoản & Phân Quyền Quản Trị</h2>
                             <p class="text-xs text-slate-400">Admin có thể phân quyền (Quản lý, Lễ tân, Khách hàng) cho bất kỳ tài khoản nào</p>
                         </div>
-                        <button onclick="loadUserRolesList(true)" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
+                        <button onclick="runButtonLoading(this, () => loadUserRolesList(true))" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs text-slate-300">
@@ -1137,7 +1130,7 @@
                             <h3 class="text-base font-bold text-amber-400 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2"></i> Nhật Ký Truy Cập & Thời Gian Đăng Nhập Hệ Thống</h3>
                             <p class="text-xs text-slate-400">Lưu lại toàn bộ lịch sử đăng nhập, tạo đơn và phân quyền để kiểm soát an ninh</p>
                         </div>
-                        <button onclick="loadActivityLogs(true)" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
+                        <button onclick="runButtonLoading(this, () => loadActivityLogs(true))" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-rotate mr-1"></i> Tải lại</button>
                     </div>
                     <div class="overflow-x-auto max-h-72 overflow-y-auto">
                         <table class="w-full text-left text-xs text-slate-300">
@@ -1176,7 +1169,7 @@
                                 <option value="REMINDER">Nhắc lịch thi đấu (trước 2 tiếng)</option>
                             </select>
                         </div>
-                        <button onclick="callAIGenerateNotifications()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg transition">Sinh Tin Nhắn AI</button>
+                        <button id="btn-ai-gen-notif" onclick="runButtonLoading(this, () => callAIGenerateNotifications())" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Sinh Tin Nhắn AI</button>
                         <div id="ai-notif-result-box" class="hidden space-y-3 pt-3">
                             <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
                                 <p class="text-[11px] font-bold text-blue-400 mb-1 flex items-center justify-between">
@@ -1244,7 +1237,7 @@
                         <p class="text-xs text-slate-400">Lưu trữ thông tin liên hệ, đồng bộ tự động khi đặt sân và theo dõi lịch sử giao dịch</p>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button onclick="loadCustomers()" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700 transition text-slate-200">
+                        <button onclick="runButtonLoading(this, () => loadCustomers())" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700 transition text-slate-200">
                             <i class="fa-solid fa-arrows-rotate mr-1 text-teal-400"></i> Làm mới
                         </button>
                         <button onclick="openAddCustomerModal()" class="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow-lg transition">
@@ -1580,7 +1573,7 @@
     <!-- MODAL CẬP NHẬT HỒ SƠ CÁ NHÂN (QUÊ QUÁN, NĂM SINH, SĐT) -->
     <!-- ========================================================================= -->
     <div id="modal-profile" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-4 animate-in fade-in duration-200">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative max-h-[90vh] flex flex-col">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 space-y-4 shadow-2xl relative max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 flex-shrink-0">
                 <h3 class="font-extrabold text-sm text-emerald-400 flex items-center">
                     <i class="fa-solid fa-id-card mr-2"></i> Hồ Sơ Thành Viên & Ví Điện Tử
@@ -1657,11 +1650,12 @@
                     <div class="space-y-2">
                         <h4 class="text-xs font-bold text-slate-300 flex items-center justify-between">
                             <span><i class="fa-solid fa-list-check mr-1.5 text-emerald-400"></i> Lịch Sử Giao Dịch Gần Đây</span>
-                            <button onclick="loadWalletData()" class="text-[11px] text-slate-400 hover:text-slate-200"><i class="fa-solid fa-rotate mr-1"></i>Tải lại</button>
+                            <button onclick="runButtonLoading(this, () => loadWalletData())" class="text-[11px] text-slate-400 hover:text-slate-200"><i class="fa-solid fa-rotate mr-1"></i>Tải lại</button>
                         </h4>
                         <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
-                            <table class="w-full text-left text-xs text-slate-300">
-                                <thead class="bg-slate-900/90 text-slate-400 text-[11px] uppercase border-b border-slate-800">
+                            <div class="overflow-x-auto">
+                            <table class="w-full min-w-[560px] text-left text-sm text-slate-300">
+                                <thead class="bg-slate-900/90 text-slate-400 text-xs uppercase border-b border-slate-800">
                                     <tr>
                                         <th class="p-2.5">Thời Gian</th>
                                         <th class="p-2.5">Nội Dung</th>
@@ -1672,7 +1666,9 @@
                                     <tr><td colspan="3" class="p-4 text-center text-slate-500 text-xs">Đang tải lịch sử...</td></tr>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
+                        <div id="wallet-history-pagination" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1"></div>
                     </div>
                 </div>
 
@@ -1680,11 +1676,12 @@
                 <div id="ptab-bookings" class="hidden space-y-3">
                     <div class="flex items-center justify-between">
                         <h4 class="text-xs font-bold text-slate-300"><i class="fa-solid fa-calendar-check mr-1.5 text-emerald-400"></i> Các Đơn Sân Đã Đặt</h4>
-                        <button onclick="loadMyBookings()" class="text-[11px] text-slate-400 hover:text-slate-200"><i class="fa-solid fa-rotate mr-1"></i>Làm mới</button>
+                        <button onclick="runButtonLoading(this, () => loadMyBookings())" class="text-[11px] text-slate-400 hover:text-slate-200"><i class="fa-solid fa-rotate mr-1"></i>Làm mới</button>
                     </div>
                     <div id="my-bookings-container" class="space-y-2.5">
                         <p class="text-xs text-slate-500 text-center py-6">Đang tải danh sách đặt sân...</p>
                     </div>
+                    <div id="my-bookings-pagination" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1"></div>
                 </div>
             </div>
 
@@ -1808,7 +1805,8 @@
                     <li>Bật <strong>Xác minh 2 bước</strong> cho tài khoản Google của bạn.</li>
                     <li>Truy cập: <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 underline font-bold hover:text-blue-800">myaccount.google.com/apppasswords</a></li>
                     <li>Tạo mật khẩu cho tên: <em>San The Thao ICTU</em></li>
-                    <li>Sao chép mã <strong>16 chữ cái</strong> dán vào ô bên dưới (không có khoảng trắng thừa).</li>
+                    <li>Sao chép mã <strong>16 chữ cái</strong> dán vào ô bên dưới; hệ thống tự bỏ khoảng trắng Google chèn giữa các nhóm ký tự.</li>
+                    <li>Nếu kết nối cổng 587 bị đóng, đổi cổng bên dưới sang <strong>465 (SSL)</strong>.</li>
                 </ol>
                 <div class="text-[11px] text-slate-600 dark:text-slate-400 bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-amber-200 dark:border-amber-800">
                     💡 <em>Nếu tài khoản chưa bật App Password, hệ thống vẫn lưu hóa đơn an toàn vào <code>storage/email_outbox/</code> mà không gây lỗi đặt sân!</em>
@@ -1827,13 +1825,21 @@
                 </div>
 
                 <div>
+                    <label for="smtp-port-input" class="block text-xs text-slate-400 mb-1">Cổng SMTP</label>
+                    <select id="smtp-port-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none font-mono">
+                        <option value="587" selected>587 - STARTTLS (khuyên dùng)</option>
+                        <option value="465">465 - SSL</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs text-slate-400 mb-1">Gửi Thử Đến Email Test (Tùy chọn):</label>
                     <input type="email" id="smtp-test-recipient" placeholder="nongthanhchungcbg@gmail.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none font-mono">
                 </div>
 
                 <div class="pt-3 flex space-x-2">
                     <button type="button" onclick="closeSmtpModal()" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2.5 rounded-xl transition">Hủy</button>
-                    <button type="submit" class="w-1/2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs py-2.5 rounded-xl shadow-lg transition">Lưu & Gửi Thử</button>
+                    <button id="btn-save-smtp" type="submit" class="w-1/2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs py-2.5 rounded-xl shadow-lg transition">Lưu & Gửi Thử</button>
                 </div>
             </form>
         </div>
@@ -2082,11 +2088,12 @@
                 </div>
 
                 <div id="forgot-step-1" class="space-y-3">
+                    <p class="text-[11px] text-slate-500">Email phải trùng với email đã đăng ký. Nếu không nhớ email, hãy nhập tên đăng nhập.</p>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Email hoặc Tên đăng nhập *</label>
                         <input type="text" id="forgot-identifier" required placeholder="example@gmail.com hoặc username" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-amber-500 focus:outline-none">
                     </div>
-                    <button onclick="handleSendOTP()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs py-2.5 rounded-2xl shadow transition">
+                    <button id="btn-send-otp" type="button" onclick="handleSendOTP()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs py-2.5 rounded-2xl shadow transition">
                         Gửi Mã 4 Số Về Email
                     </button>
                 </div>
@@ -2565,8 +2572,8 @@
     <!-- ========================================================================= -->
     <!-- MODAL 1: AI GỢI Ý KHUNG GIỜ TRỐNG DẠNG BẢNG (MỤC 3.3.4 & HÌNH 3.7.5) -->
     <!-- ========================================================================= -->
-    <div id="modal-ai-suggest-slots" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl relative animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+    <div id="modal-ai-suggest-slots" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4 md:p-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-6xl w-full p-5 sm:p-7 space-y-4 shadow-2xl relative animate-in zoom-in-95 max-h-[92vh] overflow-y-auto flex flex-col">
             <button onclick="closeAISuggestModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -2633,6 +2640,24 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- THANH PHÂN TRANG GỢI Ý KHUNG GIỜ AI (DỮ LIỆU LỚN RỘNG TOÀN MÀN HÌNH) -->
+                <div id="ai-suggest-pagination-container" class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="text-slate-400 flex items-center gap-2">
+                        <span>Hiển thị <span id="ai-suggest-page-info" class="font-bold text-emerald-400">0</span> gợi ý</span>
+                        <span class="text-slate-600">|</span>
+                        <span>Trang <span id="ai-suggest-current-page" class="font-bold text-white">1</span> / <span id="ai-suggest-total-pages" class="font-bold text-slate-300">1</span></span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="changeAISuggestPage(-1)" id="btn-ai-suggest-prev" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 border border-slate-700 transition flex items-center gap-1">
+                            <i class="fa-solid fa-chevron-left text-[10px]"></i> Trang trước
+                        </button>
+                        <div id="ai-suggest-page-pills" class="flex items-center gap-1"></div>
+                        <button type="button" onclick="changeAISuggestPage(1)" id="btn-ai-suggest-next" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 border border-slate-700 transition flex items-center gap-1">
+                            Trang sau <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -2640,8 +2665,8 @@
     <!-- ========================================================================= -->
     <!-- MODAL 2: HỘP THOẠI TẠO TIN NHẮN XÁC NHẬN AI (MỤC 3.3.4 & HÌNH 3.7.6) -->
     <!-- ========================================================================= -->
-    <div id="modal-ai-notif-dialog" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative animate-in zoom-in-95">
+    <div id="modal-ai-notif-dialog" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4 md:p-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-5 shadow-2xl relative animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
             <button onclick="closeAINotifDialog()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -2768,6 +2793,6 @@
     <div id="toast-container" class="fixed bottom-5 left-5 z-50 space-y-2"></div>
 
     <!-- MAIN APP SCRIPT -->
-    <script src="/static/js/app.js?v=20260927_v2005"></script>
+    <script src="/static/js/app.js?v=20261030_otp_loading"></script>
 </body>
 </html>

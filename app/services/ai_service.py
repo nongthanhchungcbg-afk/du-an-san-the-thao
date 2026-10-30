@@ -95,7 +95,7 @@ class AIService:
         booking_keywords = ["trống", "đặt sân", "còn sân", "khung giờ", "mấy giờ", "giờ đá", "sáng mai", "chiều nay", "tối nay", "ngày mai", "ngày kia", "hôm nay", "đến", "h -", "h đến"]
         has_hour = bool(re.search(r'\d{1,2}(?:h|:00|:30)', q))
         has_keyword = any(k in q for k in booking_keywords)
-        return (has_hour and has_keyword) or ("sân trống" in q) or ("đặt lịch" in q) or ("có sân" in q and "không" in q)
+        return (has_hour and has_keyword) or ("sân trống" in q) or ("đặt lịch" in q) or ("có sân" in q and "không" in q) or ("khung giờ" in q) or ("gợi ý" in q)
 
     @staticmethod
     def parse_time_and_date(query: str, default_date: str) -> Dict[str, Any]:
@@ -393,9 +393,17 @@ class AIService:
 
         if matching_slots:
             suggestions_formatted = []
-            badges = ["⚡ Khung Giờ Vàng Đề Xuất", "💰 Tiết Kiệm Chi Phí Tối Ưu", "🏆 Sân Thi Đấu VIP"]
-            for idx, s in enumerate(matching_slots[:3]):
+            badges = [
+                "⚡ Khung Giờ Vàng Đề Xuất (Gần giờ ưu tiên nhất, thời tiết mát mẻ)",
+                "💰 Tiết Kiệm Chi Phí Tối Ưu (Giá ưu đãi, khung giờ thông thoáng)",
+                "🏆 Sân Thi Đấu VIP (Mặt sân chuẩn, đầy đủ đèn chiếu sáng & tiện ích)",
+                "🌟 Khung Giờ Đẹp (Rất thích hợp giao lưu thi đấu)",
+                "🔥 Giờ Vàng Thể Thao (Được nhiều đội bóng yêu thích)",
+                "✨ Khung Giờ Thoáng (Dễ đá, không khí trong lành)"
+            ]
+            for idx, s in enumerate(matching_slots):
                 badge = badges[idx] if idx < len(badges) else "🌟 Sân Chất Lượng Khuyên Dùng"
+                s["reason"] = badge
                 price_val = s.get("price_per_hour", 250000)
                 suggestions_formatted.append(
                     f"{idx+1}. **{badge}**\n"
@@ -413,7 +421,7 @@ class AIService:
             )
             return {
                 "response": resp_text,
-                "suggested_slots": matching_slots[:3],
+                "suggested_slots": matching_slots,
                 "source": "AI_SMART_SLOT_ANALYZER"
             }
         else:

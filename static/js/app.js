@@ -9,6 +9,72 @@ function getLocalDateString(d = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+function parseApiDate(value) {
+    if (!value) return null;
+    const raw = String(value).trim();
+    const isNaiveDateTime = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(raw)
+        && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw);
+    const date = new Date(isNaiveDateTime ? `${raw.replace(' ', 'T')}Z` : raw);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatVietnamDateTime(value) {
+    const date = parseApiDate(value);
+    if (!date) return '--';
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(date).map(part => [part.type, part.value]));
+    return `${parts.hour}:${parts.minute}:${parts.second} ${parts.day}/${parts.month}/${parts.year}`;
+}
+
+function formatVietnamDate(value) {
+    const date = parseApiDate(value);
+    if (!date) return '--';
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(date).map(part => [part.type, part.value]));
+    return `${parts.day}/${parts.month}/${parts.year}`;
+}
+
+async function runButtonLoading(button, action) {
+    if (!button || button.disabled || button.dataset.loading === 'true') return;
+
+    const originalContent = button.innerHTML;
+    button.dataset.loading = 'true';
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.classList.add('cursor-wait', 'opacity-70');
+    const icon = button.querySelector('i');
+    if (icon) {
+        icon.className = 'fa-solid fa-spinner fa-spin';
+    } else {
+        button.insertAdjacentHTML('afterbegin', '<i class="fa-solid fa-spinner fa-spin mr-1" aria-hidden="true"></i>');
+    }
+
+    try {
+        await action();
+    } catch (error) {
+        console.error('Refresh action failed:', error);
+        showToast(error.message || 'Không thể tải dữ liệu. Vui lòng thử lại.', 'error');
+    } finally {
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        button.classList.remove('cursor-wait', 'opacity-70');
+        delete button.dataset.loading;
+    }
+}
+
 // =========================================================================
 // API FETCH HELPER WITH AUTH & ERROR HANDLING
 // =========================================================================
@@ -59,6 +125,10 @@ let state = {
     currentWeekOffset: 0,
     currentBookingSportFilter: 'ALL',
     bookingPitchSearch: '',
+    walletTransactions: [],
+    walletHistoryPage: 1,
+    myBookings: [],
+    myBookingsPage: 1,
     reviews: [],
     matches: [],
     events: [],
@@ -346,7 +416,6 @@ function switchTab(tabId) {
     }
 
     state.currentTab = tabId;
-    setHeroVideoActive(tabId === 'home');
     localStorage.setItem('active_tab', tabId);
     try {
         if (window.location.hash !== `#${tabId}`) {
@@ -670,62 +739,6 @@ function selectMenuFunction(tabId) {
     switchTab(tabId);
 }
 
-// VIDEO CONTROLS
-function setHeroVideoActive(active) {
-    const video = document.getElementById('bg-hero-video');
-    const source = video?.querySelector('source');
-    const icon = document.getElementById('icon-video-play');
-    if (!video) return;
-
-    const defaultVideoSrc = '/static/videos/nensanthethao.mp4';
-
-    if (!active) {
-        video.pause();
-        if (source) {
-            const currentSrc = source.getAttribute('src');
-            if (currentSrc && currentSrc !== defaultVideoSrc) {
-                source.setAttribute('src', defaultVideoSrc);
-            }
-            video.load();
-        }
-        if (icon) icon.className = 'fa-solid fa-play';
-        return;
-    }
-
-    if (source && !source.getAttribute('src')) {
-        source.setAttribute('src', source.dataset?.src || defaultVideoSrc);
-        video.load();
-    }
-    video.play().then(() => {
-        if (icon) icon.className = 'fa-solid fa-pause';
-    }).catch(() => {
-        if (icon) icon.className = 'fa-solid fa-play';
-    });
-}
-
-function toggleVideoMute() {
-    const video = document.getElementById('bg-hero-video');
-    const icon = document.getElementById('icon-video-mute');
-    if (!video) return;
-    video.muted = !video.muted;
-    icon.className = video.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high text-emerald-400';
-    showToast(video.muted ? 'Đã tắt âm thanh' : 'Đã bật âm thanh video', 'info');
-}
-
-function toggleVideoPlay() {
-    const video = document.getElementById('bg-hero-video');
-    const icon = document.getElementById('icon-video-play');
-    if (!video) return;
-    if (video.paused) {
-        setHeroVideoActive(true);
-        showToast('Đang phát video nền', 'info');
-    } else {
-        video.pause();
-        icon.className = 'fa-solid fa-play text-amber-400';
-        showToast('Đã tạm dừng video nền', 'info');
-    }
-}
-
 // AUTHENTICATION UI & OTP 4 SỐ
 function openAuthModal(view = 'login') {
     const modal = document.getElementById('modal-auth');
@@ -772,6 +785,16 @@ async function handleSendOTP() {
         return;
     }
 
+    const button = document.getElementById('btn-send-otp');
+    if (button?.disabled) return;
+    const originalContent = button?.innerHTML;
+    if (button) {
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        button.classList.add('cursor-wait', 'opacity-70');
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1" aria-hidden="true"></i> Đang gửi mã...';
+    }
+
     try {
         const res = await fetch('/api/auth/send-otp', {
             method: 'POST',
@@ -793,6 +816,13 @@ async function handleSendOTP() {
         showToast(`Mã xác thực 4 số: ${data.demo_otp_hint}`, 'success');
     } catch (e) {
         showToast(e.message, 'error');
+    } finally {
+        if (button) {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+            button.classList.remove('cursor-wait', 'opacity-70');
+        }
     }
 }
 
@@ -1220,25 +1250,61 @@ async function loadWalletData() {
         const balEl = document.getElementById('profile-wallet-balance');
         if (balEl) balEl.innerText = `${Number(data.wallet_balance).toLocaleString()} VNĐ`;
 
+        state.walletTransactions = data.transactions || [];
+        state.walletHistoryPage = 1;
+        renderWalletHistory();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function renderWalletHistory() {
         const tbody = document.getElementById('wallet-history-tbody');
-        if (tbody) {
-            if (!data.transactions || data.transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-slate-500 text-xs">Chưa có giao dịch ví nào</td></tr>`;
-            } else {
-                tbody.innerHTML = data.transactions.map(tx => `
+        const pagination = document.getElementById('wallet-history-pagination');
+        if (!tbody) return;
+
+        const pageSize = 6;
+        const total = state.walletTransactions.length;
+        const pageCount = Math.max(1, Math.ceil(total / pageSize));
+        state.walletHistoryPage = Math.min(state.walletHistoryPage, pageCount);
+
+        if (total === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-slate-500 text-sm">Chưa có giao dịch ví nào</td></tr>`;
+            if (pagination) pagination.innerHTML = '';
+            return;
+        }
+
+        const start = (state.walletHistoryPage - 1) * pageSize;
+        tbody.innerHTML = state.walletTransactions.slice(start, start + pageSize).map(tx => `
                     <tr class="hover:bg-slate-900/60 transition">
-                        <td class="py-2.5 text-slate-400 font-mono text-[11px]">${new Date(tx.created_at).toLocaleDateString('vi-VN')} ${new Date(tx.created_at).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</td>
-                        <td class="py-2.5 text-slate-200">${tx.description || 'Giao dịch ví'}</td>
-                        <td class="py-2.5 text-right font-bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-rose-400'} font-mono">
+                        <td class="px-4 py-4 text-slate-400 font-mono text-xs whitespace-nowrap">${formatVietnamDateTime(tx.created_at)}</td>
+                        <td class="px-4 py-4 text-slate-200 text-sm">${tx.description || 'Giao dịch ví'}</td>
+                        <td class="px-4 py-4 text-right font-bold text-sm ${tx.amount > 0 ? 'text-emerald-400' : 'text-rose-400'} font-mono whitespace-nowrap">
                             ${tx.amount > 0 ? '+' : ''}${Number(tx.amount).toLocaleString()} đ
                         </td>
                     </tr>
                 `).join('');
-            }
+
+        if (pagination) {
+            pagination.innerHTML = `
+                <span class="text-sm text-slate-400">Giao dịch ${start + 1}–${Math.min(start + pageSize, total)} / ${total}</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="changeWalletHistoryPage(-1)" ${state.walletHistoryPage === 1 ? 'disabled' : ''} class="profile-page-button">
+                        <i class="fa-solid fa-chevron-left"></i><span>Trước</span>
+                    </button>
+                    <span class="min-w-20 text-center text-sm font-bold text-slate-200">${state.walletHistoryPage} / ${pageCount}</span>
+                    <button type="button" onclick="changeWalletHistoryPage(1)" ${state.walletHistoryPage === pageCount ? 'disabled' : ''} class="profile-page-button">
+                        <span>Sau</span><i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            `;
         }
-    } catch (e) {
-        console.error(e);
-    }
+}
+
+function changeWalletHistoryPage(direction) {
+    const pageCount = Math.max(1, Math.ceil(state.walletTransactions.length / 6));
+    state.walletHistoryPage = Math.min(pageCount, Math.max(1, state.walletHistoryPage + direction));
+    renderWalletHistory();
 }
 
 function openDepositModal() {
@@ -1344,36 +1410,76 @@ async function loadMyBookings() {
         const list = await res.json();
 
         if (list.length === 0) {
+            state.myBookings = [];
             container.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Bạn chưa có đơn đặt sân nào. Hãy chọn sân và khung giờ để đặt ngay!</p>`;
+            const pagination = document.getElementById('my-bookings-pagination');
+            if (pagination) pagination.innerHTML = '';
             return;
         }
 
-        container.innerHTML = list.map(b => `
-            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2 text-xs">
+        state.myBookings = list;
+        state.myBookingsPage = 1;
+        renderMyBookings();
+    } catch (e) {
+        container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">${e.message}</p>`;
+    }
+}
+
+function renderMyBookings() {
+        const container = document.getElementById('my-bookings-container');
+        const pagination = document.getElementById('my-bookings-pagination');
+        if (!container) return;
+
+        const pageSize = 3;
+        const total = state.myBookings.length;
+        const pageCount = Math.max(1, Math.ceil(total / pageSize));
+        state.myBookingsPage = Math.min(state.myBookingsPage, pageCount);
+        const start = (state.myBookingsPage - 1) * pageSize;
+
+        container.innerHTML = state.myBookings.slice(start, start + pageSize).map(b => `
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 text-sm">
                 <div class="flex justify-between items-start">
                     <div>
-                        <span class="font-mono text-emerald-400 font-bold">#${b.id}</span>
-                        <h4 class="font-bold text-white text-sm">${b.pitch?.name || 'Sân thể thao'}</h4>
+                        <span class="font-mono text-emerald-400 font-bold text-sm">#${b.id}</span>
+                        <h4 class="font-bold text-white text-base sm:text-lg">${b.pitch?.name || 'Sân thể thao'}</h4>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${b.status === 'CONFIRMED' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : b.status === 'CANCELLED' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${b.status === 'CONFIRMED' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : b.status === 'CANCELLED' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
                         ${b.status === 'CONFIRMED' ? 'Đã Duyệt' : b.status === 'CANCELLED' ? 'Đã Hủy' : 'Chờ Duyệt'}
                     </span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1 border-t border-slate-900">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm text-slate-300 pt-3 border-t border-slate-900">
                     <p><i class="fa-solid fa-calendar text-emerald-400 mr-1"></i> Ngày: <strong>${b.booking_date}</strong></p>
                     <p><i class="fa-solid fa-clock text-amber-400 mr-1"></i> Giờ: <strong>${b.start_time} - ${b.end_time}</strong></p>
                     <p><i class="fa-solid fa-coins text-yellow-400 mr-1"></i> Tổng: <strong class="text-emerald-400">${b.total_price.toLocaleString()}đ</strong></p>
                     <p><i class="fa-solid fa-credit-card text-blue-400 mr-1"></i> PTTT: <strong>${b.payment_method}</strong></p>
                 </div>
-                <div class="flex justify-end space-x-2 pt-1">
-                    <button onclick="viewBookingInvoice(${b.id})" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold px-3 py-1 rounded-lg transition">Xem hóa đơn</button>
-                    ${b.status === 'PENDING' ? `<button onclick="cancelMyBooking(${b.id})" class="bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[10px] font-bold px-3 py-1 rounded-lg transition">Hủy đơn</button>` : ''}
+                <div class="flex justify-end gap-2 pt-1">
+                    <button onclick="viewBookingInvoice(${b.id})" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-lg transition">Xem hóa đơn</button>
+                    ${b.status === 'PENDING' ? `<button onclick="cancelMyBooking(${b.id})" class="bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-xs font-bold px-4 py-2 rounded-lg transition">Hủy đơn</button>` : ''}
                 </div>
             </div>
         `).join('');
-    } catch (e) {
-        container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">${e.message}</p>`;
-    }
+
+        if (pagination) {
+            pagination.innerHTML = `
+                <span class="text-sm text-slate-400">Đơn ${start + 1}–${Math.min(start + pageSize, total)} / ${total}</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="changeMyBookingsPage(-1)" ${state.myBookingsPage === 1 ? 'disabled' : ''} class="profile-page-button">
+                        <i class="fa-solid fa-chevron-left"></i><span>Trước</span>
+                    </button>
+                    <span class="min-w-20 text-center text-sm font-bold text-slate-200">${state.myBookingsPage} / ${pageCount}</span>
+                    <button type="button" onclick="changeMyBookingsPage(1)" ${state.myBookingsPage === pageCount ? 'disabled' : ''} class="profile-page-button">
+                        <span>Sau</span><i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            `;
+        }
+}
+
+function changeMyBookingsPage(direction) {
+    const pageCount = Math.max(1, Math.ceil(state.myBookings.length / 3));
+    state.myBookingsPage = Math.min(pageCount, Math.max(1, state.myBookingsPage + direction));
+    renderMyBookings();
 }
 
 async function cancelMyBooking(bookingId) {
@@ -2032,6 +2138,12 @@ function renderLiveRecentBookings(bookings) {
 async function handleMatrixBookingSubmit(e) {
     if (e) e.preventDefault();
 
+    if (!state.user || !state.token) {
+        showToast('Vui lòng đăng nhập tài khoản trước khi đặt sân!', 'warning');
+        openAuthModal('login');
+        return;
+    }
+
     const pitchId = parseInt(document.getElementById('matrix-pitch-select')?.value || 1);
     const date = document.getElementById('matrix-booking-date')?.value || getLocalDateString();
     const start = document.getElementById('matrix-start-time')?.value;
@@ -2050,13 +2162,6 @@ async function handleMatrixBookingSubmit(e) {
 
     if (!custName || !custPhone) {
         showToast('Vui lòng nhập đầy đủ Họ và Tên cùng Số điện thoại để đặt sân!', 'warning');
-        return;
-    }
-
-    // Nếu chọn thanh toán bằng Ví điện tử thì bắt buộc đăng nhập
-    if (payMethod === 'WALLET' && (!state.user || !state.token)) {
-        showToast('Vui lòng đăng nhập tài khoản để sử dụng thanh toán bằng Ví điện tử!', 'warning');
-        openAuthModal('login');
         return;
     }
 
@@ -2338,7 +2443,7 @@ async function loadUserRolesList(manual = false) {
                 <td class="p-3 font-bold text-white whitespace-nowrap">${u.full_name}</td>
                 <td class="p-3"><p class="text-slate-200 font-mono">${u.username}</p><p class="text-[10px] text-slate-400 font-mono">${u.email}</p></td>
                 <td class="p-3 font-mono text-slate-300 whitespace-nowrap">${u.phone || 'Chưa cập nhật'}</td>
-                <td class="p-3 text-[11px] text-slate-400 whitespace-nowrap">${u.last_login_at ? new Date(u.last_login_at).toLocaleString('vi-VN') : 'Chưa đăng nhập'}</td>
+                <td class="p-3 text-[11px] text-slate-400 whitespace-nowrap">${u.last_login_at ? formatVietnamDateTime(u.last_login_at) : 'Chưa đăng nhập'}</td>
                 <td class="p-3 whitespace-nowrap"><span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap inline-block ${u.role === 'ADMIN' ? 'bg-red-950 text-red-300 border border-red-800' : u.role === 'STAFF' ? 'bg-blue-950 text-blue-300 border border-blue-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${u.role}</span></td>
                 <td class="p-3 text-right whitespace-nowrap">
                     <select onchange="changeUserRole(${u.id}, this.value)" class="bg-slate-950 border border-slate-700 text-xs rounded-lg px-2 py-1 text-slate-200">
@@ -2378,7 +2483,7 @@ async function loadActivityLogs(manual = false) {
         if (!tbody) return;
         tbody.innerHTML = logs.map(l => `
             <tr class="hover:bg-slate-800/60 transition">
-                <td class="p-2.5 text-slate-400 whitespace-nowrap">${new Date(l.timestamp).toLocaleString('vi-VN')}</td>
+                <td class="p-2.5 text-slate-400 whitespace-nowrap">${formatVietnamDateTime(l.timestamp)}</td>
                 <td class="p-2.5 font-bold text-emerald-400 whitespace-nowrap">${l.username}</td>
                 <td class="p-2.5 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">${l.role}</span></td>
                 <td class="p-2.5 text-slate-200">${l.action}</td>
@@ -2652,7 +2757,7 @@ async function loadReviews() {
                     </div>
                 </div>
                 <p class="text-xs text-slate-300 leading-relaxed italic">"${r.comment}"</p>
-                <p class="text-[10px] text-slate-500 pt-2 border-t border-slate-800">${new Date(r.created_at).toLocaleDateString('vi-VN')}</p>
+                <p class="text-[10px] text-slate-500 pt-2 border-t border-slate-800">${formatVietnamDate(r.created_at)}</p>
             </div>
         `;
         }).join('');
@@ -3080,7 +3185,7 @@ async function loadCustomers(search = '') {
 
         tbody.innerHTML = customersCache.map(c => {
             const bookingCount = c.bookings ? c.bookings.length : 0;
-            const createdDate = c.created_at ? new Date(c.created_at).toLocaleDateString('vi-VN') : 'N/A';
+            const createdDate = c.created_at ? formatVietnamDate(c.created_at) : 'N/A';
             const safeName = (c.name || '').replace(/'/g, "\\'");
             return `
                 <tr class="hover:bg-slate-800/40 transition">
@@ -3990,7 +4095,7 @@ async function loadPayments(manual = false) {
                     <td class="p-3.5 font-mono text-teal-400 font-bold">#${p.booking_id}</td>
                     <td class="p-3.5 font-mono text-emerald-400 font-black">${(Number(p.amount) || 0).toLocaleString()} đ</td>
                     <td class="p-3.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">${p.payment_method || 'CASH'}</span></td>
-                    <td class="p-3.5 font-mono text-slate-400 text-xs">${p.payment_time ? new Date(p.payment_time).toLocaleString('vi-VN') : '---'}</td>
+                    <td class="p-3.5 font-mono text-slate-400 text-xs">${p.payment_time ? formatVietnamDateTime(p.payment_time) : '---'}</td>
                     <td class="p-3.5 text-center">${statusBadge}</td>
                     <td class="p-3.5 text-right">
                         <button onclick="viewPaymentInvoice(${p.booking_id})" class="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition shadow"><i class="fa-solid fa-file-invoice mr-1"></i> Xem</button>
@@ -4024,10 +4129,21 @@ async function handleSaveSmtpSubmit(event) {
     const smtp_user = document.getElementById('smtp-user-input')?.value?.trim();
     const smtp_password = document.getElementById('smtp-pass-input')?.value?.trim();
     const test_recipient = document.getElementById('smtp-test-recipient')?.value?.trim();
+    const smtp_port = Number(document.getElementById('smtp-port-input')?.value || 587);
+    const submitButton = event?.currentTarget?.querySelector('button[type="submit"]');
 
     if (!smtp_user || !smtp_password) {
         showToast('Vui lòng điền đầy đủ tài khoản Gmail và Mật khẩu ứng dụng!', 'warning');
         return;
+    }
+
+    if (submitButton?.disabled) return;
+    const originalButtonContent = submitButton?.innerHTML;
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.setAttribute('aria-busy', 'true');
+        submitButton.classList.add('cursor-wait', 'opacity-70');
+        submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1" aria-hidden="true"></i> Đang lưu và gửi thử...';
     }
 
     try {
@@ -4038,21 +4154,46 @@ async function handleSaveSmtpSubmit(event) {
                 ...(state.token ? { 'Authorization': `Bearer ${state.token}` } : {})
             },
             body: JSON.stringify({
+                smtp_host: 'smtp.gmail.com',
+                smtp_port,
                 smtp_user: smtp_user,
                 smtp_password: smtp_password,
                 test_recipient: test_recipient || smtp_user
             })
         });
-        const data = await res.json();
+
+        const responseText = await res.text();
+        let data;
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+            throw new Error(`Máy chủ trả về phản hồi không hợp lệ (HTTP ${res.status}). Hãy kiểm tra log máy chủ.`);
+        }
+
         if (!res.ok) {
-            showToast(data.detail || 'Không thể lưu cấu hình SMTP!', 'error');
+            throw new Error(data.detail || data.message || `Không thể lưu cấu hình SMTP (HTTP ${res.status}).`);
+        }
+
+        if (data.status === 'warning') {
+            showToast(data.message || data.test_result?.message || 'Đã lưu cấu hình nhưng gửi email thử chưa thành công.', 'warning');
             return;
         }
+
         showToast(data.message || 'Cấu hình SMTP thành công! Email thử nghiệm đã được gửi.', 'success');
         closeSmtpModal();
     } catch (err) {
         console.error(err);
-        showToast('Lỗi kết nối máy chủ khi lưu cấu hình SMTP!', 'error');
+        const message = err instanceof TypeError
+            ? 'Không kết nối được máy chủ. Hãy kiểm tra ứng dụng còn chạy và thử lại.'
+            : err.message || 'Có lỗi khi lưu cấu hình SMTP.';
+        showToast(message, 'error');
+    } finally {
+        if (submitButton) {
+            submitButton.innerHTML = originalButtonContent;
+            submitButton.disabled = false;
+            submitButton.removeAttribute('aria-busy');
+            submitButton.classList.remove('cursor-wait', 'opacity-70');
+        }
     }
 }
 
@@ -4234,6 +4375,11 @@ async function sendRealAIEmail() {
             return;
         }
 
+        if (data.mode !== 'LIVE_SMTP' || data.success !== true) {
+            showToast(data.message || 'Email chưa được gửi. Vui lòng kiểm tra cấu hình SMTP.', 'error');
+            return;
+        }
+
         showToast(`Đã gửi email thực tế đến ${recipient} thành công!`, 'success');
     } catch (err) {
         console.error(err);
@@ -4299,39 +4445,13 @@ async function handleAISuggestSubmit(e) {
             })
         });
 
-        const suggestions = res.suggested_slots || [];
-        if (suggestions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400"><i class="fa-solid fa-circle-exclamation text-amber-400 text-lg mb-1 block"></i> Không tìm thấy khung giờ trống nào phù hợp trong ngày đã chọn.</td></tr>';
-            return;
-        }
+        window.currentAISuggestions = res.suggested_slots || [];
+        window.aiSuggestCurrentPage = 1;
+        window.aiSuggestPageSize = 5; // 5 khung giờ mỗi trang, hiển thị rõ ràng, chuyên nghiệp
+        window.aiSuggestTargetDate = date;
 
-        tbody.innerHTML = suggestions.map((s, idx) => {
-            const pitchId = s.pitch_id || 1;
-            const pitchName = s.pitch_name || `Sân Thể Thao #${pitchId}`;
-            const timeRange = `${s.start_time} - ${s.end_time}`;
-            const hourlyPrice = Number(s.start_time >= '17:00' ? s.peak_price_per_hour : s.price_per_hour);
-            const priceText = hourlyPrice ? `${hourlyPrice.toLocaleString()} đ/giờ` : 'Giá tiêu chuẩn';
-            const reason = s.reason || 'Khung giờ thoáng, phù hợp thể lực và thời tiết lý tưởng';
-
-            return `
-                <tr class="hover:bg-slate-900/80 transition">
-                    <td class="p-3 font-bold text-white flex items-center gap-1.5">
-                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-mono">${idx+1}</span>
-                        <span>${pitchName}</span>
-                    </td>
-                    <td class="p-3 font-mono text-amber-300 font-semibold">${timeRange}</td>
-                    <td class="p-3 font-mono text-emerald-400 font-bold">${priceText}</td>
-                    <td class="p-3 text-slate-300 text-xs max-w-xs leading-relaxed">${reason}</td>
-                    <td class="p-3 text-right">
-                        <button type="button" onclick="selectSuggestedSlot(${pitchId}, '${date}', '${s.start_time}', '${s.end_time}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow transition">
-                            <i class="fa-solid fa-check mr-1"></i> Chọn Giờ Này
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-        showToast('AI đã gợi ý thành công danh sách khung giờ tối ưu!', 'success');
+        renderAISuggestTable();
+        showToast(`AI đã gợi ý thành công ${window.currentAISuggestions.length} khung giờ trống!`, 'success');
     } catch (err) {
         console.error(err);
         if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-rose-400">Lỗi AI: ${err.message || 'Không thể lấy gợi ý'}</td></tr>`;
@@ -4581,3 +4701,98 @@ function escapeHtml(str) {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
+
+// =========================================================================
+// PHÂN TRANG DỮ LIỆU LỚN CHO BẢNG GỢI Ý KHUNG GIỜ AI (RỘNG TOÀN MÀN HÌNH)
+// =========================================================================
+function renderAISuggestTable() {
+    const tbody = document.getElementById('ai-suggest-tbody');
+    const items = window.currentAISuggestions || [];
+    const date = window.aiSuggestTargetDate || getLocalDateString();
+    const page = window.aiSuggestCurrentPage || 1;
+    const pageSize = window.aiSuggestPageSize || 5;
+
+    if (!tbody) return;
+
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400"><i class="fa-solid fa-circle-exclamation text-amber-400 text-2xl mb-2 block"></i> Không tìm thấy khung giờ trống nào phù hợp trong ngày đã chọn.</td></tr>';
+        updateAISuggestPaginationUI(0, 1, 1);
+        return;
+    }
+
+    const totalPages = Math.ceil(items.length / pageSize) || 1;
+    const startIndex = (page - 1) * pageSize;
+    const pageItems = items.slice(startIndex, startIndex + pageSize);
+
+    tbody.innerHTML = pageItems.map((s, idx) => {
+        const globalIdx = startIndex + idx + 1;
+        const pitchId = s.pitch_id || 1;
+        const pitchName = s.pitch_name || `Sân Thể Thao #${pitchId}`;
+        const timeRange = `${s.start_time} - ${s.end_time}`;
+        const hourlyPrice = Number(s.start_time >= '17:00' ? (s.peak_price_per_hour || s.price_per_hour) : s.price_per_hour);
+        const priceText = hourlyPrice ? `${hourlyPrice.toLocaleString()} đ/giờ` : 'Giá tiêu chuẩn';
+        const reason = s.reason || 'Khung giờ thoáng, phù hợp thể lực và thời tiết lý tưởng';
+
+        return `
+            <tr class="hover:bg-slate-900/90 transition border-b border-slate-800/60">
+                <td class="p-3.5 font-bold text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xs font-mono font-bold">${globalIdx}</span>
+                    <span class="text-sm font-semibold text-slate-100">${pitchName}</span>
+                </td>
+                <td class="p-3.5 font-mono text-amber-300 font-bold text-sm">
+                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">${timeRange}</span>
+                </td>
+                <td class="p-3.5 font-mono text-emerald-400 font-extrabold text-sm">${priceText}</td>
+                <td class="p-3.5 text-slate-300 text-xs leading-relaxed max-w-md">
+                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-medium">${reason}</span>
+                </td>
+                <td class="p-3.5 text-right whitespace-nowrap">
+                    <button type="button" onclick="selectSuggestedSlot(${pitchId}, '${date}', '${s.start_time}', '${s.end_time}')" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 transition transform hover:scale-105 cursor-pointer">
+                        <i class="fa-solid fa-check-circle mr-1.5"></i> Chọn Giờ Này
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    updateAISuggestPaginationUI(items.length, page, totalPages);
+}
+
+function updateAISuggestPaginationUI(totalItems, currentPage, totalPages) {
+    const pageInfo = document.getElementById('ai-suggest-page-info');
+    const curPageEl = document.getElementById('ai-suggest-current-page');
+    const totalPagesEl = document.getElementById('ai-suggest-total-pages');
+    const btnPrev = document.getElementById('btn-ai-suggest-prev');
+    const btnNext = document.getElementById('btn-ai-suggest-next');
+    const pillsContainer = document.getElementById('ai-suggest-page-pills');
+
+    if (pageInfo) pageInfo.textContent = `${totalItems}`;
+    if (curPageEl) curPageEl.textContent = `${currentPage}`;
+    if (totalPagesEl) totalPagesEl.textContent = `${totalPages}`;
+
+    if (btnPrev) btnPrev.disabled = (currentPage <= 1);
+    if (btnNext) btnNext.disabled = (currentPage >= totalPages);
+
+    if (pillsContainer) {
+        let pillsHtml = '';
+        for (let p = 1; p <= totalPages; p++) {
+            const isActive = (p === currentPage);
+            pillsHtml += `<button type="button" onclick="goToAISuggestPage(${p})" class="w-7 h-7 rounded-lg text-xs font-bold transition ${isActive ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'}">${p}</button>`;
+        }
+        pillsContainer.innerHTML = pillsHtml;
+    }
+}
+
+function changeAISuggestPage(delta) {
+    const totalPages = Math.ceil((window.currentAISuggestions || []).length / (window.aiSuggestPageSize || 5)) || 1;
+    let newPage = (window.aiSuggestCurrentPage || 1) + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+        window.aiSuggestCurrentPage = newPage;
+        renderAISuggestTable();
+    }
+}
+
+function goToAISuggestPage(pageNumber) {
+    window.aiSuggestCurrentPage = pageNumber;
+    renderAISuggestTable();
+}
