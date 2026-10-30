@@ -6,6 +6,14 @@ from app.models import Pitch, Booking, PitchType, PitchStatus
 
 client = TestClient(app)
 
+def get_admin_headers():
+    login_res = client.post("/api/auth/login", json={
+        "username": "nongthanhchung",
+        "password": "Admin"
+    })
+    assert login_res.status_code == 200
+    return {"Authorization": f"Bearer {login_res.json()['access_token']}"}
+
 @pytest.fixture(autouse=True)
 def cleanup_test_data():
     Base.metadata.create_all(bind=engine)
@@ -25,6 +33,17 @@ def cleanup_test_data():
     db.commit()
     db.close()
 
+def test_create_booking_requires_login():
+    res = client.post("/api/bookings", json={
+        "pitch_id": 1,
+        "customer_name": "Guest User",
+        "customer_phone": "0988000000",
+        "booking_date": "2026-12-25",
+        "start_time": "17:30",
+        "end_time": "19:00"
+    })
+    assert res.status_code == 401
+
 def test_create_booking_success():
     res = client.post("/api/bookings", json={
         "pitch_id": 1,
@@ -35,7 +54,7 @@ def test_create_booking_success():
         "end_time": "19:00",
         "deposit_amount": 100000,
         "note": "Test đơn hàng hợp lệ"
-    })
+    }, headers=get_admin_headers())
     assert res.status_code == 200
     data = res.json()
     assert data["customer_name"] == "Test User A"
@@ -43,6 +62,7 @@ def test_create_booking_success():
 
 def test_create_overlapping_booking_fails():
     # 1. Tao don dat san dau tien
+    headers = get_admin_headers()
     client.post("/api/bookings", json={
         "pitch_id": 1,
         "customer_name": "Test User A1",
@@ -51,7 +71,7 @@ def test_create_overlapping_booking_fails():
         "start_time": "17:30",
         "end_time": "19:00",
         "deposit_amount": 100000
-    })
+    }, headers=headers)
 
     # 2. Thu dat trung gio tren cung san ngay 2026-12-26 tu 18:00 den 19:30
     res = client.post("/api/bookings", json={
@@ -62,15 +82,15 @@ def test_create_overlapping_booking_fails():
         "start_time": "18:00",
         "end_time": "19:30",
         "deposit_amount": 0
-    })
+    }, headers=headers)
     # Bat buoc phai tra ve 409 Conflict
     assert res.status_code == 409
     assert "Trùng lịch" in res.json()["detail"]
 
 def test_admin_can_mark_confirmed_booking_completed_after_return():
     login_res = client.post("/api/auth/login", json={
-        "username": "admin",
-        "password": "admin123"
+        "username": "nongthanhchung",
+        "password": "Admin"
     })
     assert login_res.status_code == 200
     token = login_res.json()["access_token"]
@@ -86,7 +106,7 @@ def test_admin_can_mark_confirmed_booking_completed_after_return():
         "end_time": "06:00",
         "payment_method": "CASH",
         "deposit_amount": 0
-    })
+    }, headers={"Authorization": f"Bearer {token}"})
     assert booking_res.status_code == 200
     booking_id = booking_res.json()["id"]
 

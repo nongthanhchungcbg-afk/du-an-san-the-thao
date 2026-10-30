@@ -1046,7 +1046,7 @@
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-x-auto shadow-lg">
                     <table class="w-full text-left text-xs text-slate-300">
                         <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
-                            <tr><th class="p-3.5">Mã</th><th class="p-3.5">Khách Hàng</th><th class="p-3.5">Sân & Địa Điểm</th><th class="p-3.5">Thời Gian</th><th class="p-3.5">Tổng/Cọc</th><th class="p-3.5">Trạng Thái</th><th class="p-3.5 text-right">Thao Tác</th></tr>
+                            <tr><th class="p-3.5">Mã</th><th class="p-3.5">Khách Hàng</th><th class="p-3.5">Sân & Địa Điểm</th><th class="p-3.5">Thời Gian</th><th class="p-3.5">Tổng/Cọc</th><th class="p-3.5 text-center">Trạng Thái</th><th class="p-3.5 text-right min-w-[250px]">Thao Tác</th></tr>
                         </thead>
                         <tbody id="bookings-tbody" class="divide-y divide-slate-800"></tbody>
                     </table>
@@ -2573,7 +2573,7 @@
     <!-- MODAL 1: AI GỢI Ý KHUNG GIỜ TRỐNG DẠNG BẢNG (MỤC 3.3.4 & HÌNH 3.7.5) -->
     <!-- ========================================================================= -->
     <div id="modal-ai-suggest-slots" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4 md:p-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-6xl w-full p-5 sm:p-7 space-y-4 shadow-2xl relative animate-in zoom-in-95 max-h-[92vh] overflow-y-auto flex flex-col">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-7xl w-[96vw] p-5 sm:p-7 space-y-4 shadow-2xl relative animate-in zoom-in-95 max-h-[92vh] overflow-y-auto flex flex-col">
             <button onclick="closeAISuggestModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -2666,7 +2666,7 @@
     <!-- MODAL 2: HỘP THOẠI TẠO TIN NHẮN XÁC NHẬN AI (MỤC 3.3.4 & HÌNH 3.7.6) -->
     <!-- ========================================================================= -->
     <div id="modal-ai-notif-dialog" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4 md:p-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-5 shadow-2xl relative animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-5xl w-[94vw] p-6 sm:p-8 space-y-5 shadow-2xl relative animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
             <button onclick="closeAINotifDialog()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -2790,7 +2790,7 @@
     </div>
 
     <!-- TOAST CONTAINER -->
-    <div id="toast-container" class="fixed bottom-5 left-5 z-50 space-y-2"></div>
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 max-w-md w-auto pointer-events-none"></div>
 
     <!-- MAIN APP SCRIPT -->
     <script src="/static/js/app.js?v=20261030_otp_loading"></script>

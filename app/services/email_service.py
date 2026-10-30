@@ -1,8 +1,13 @@
 import os
 import smtplib
+import socket
+import ssl
 from datetime import datetime
+from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
+from html import escape
 from pathlib import Path
 
 from app.config import settings
@@ -35,11 +40,11 @@ class EmailService:
         smtp_port = int(os.getenv("SMTP_PORT", getattr(settings, "SMTP_PORT", 587)))
         smtp_user = os.getenv("SMTP_USER", getattr(settings, "SMTP_USER", ""))
         smtp_password = os.getenv("SMTP_PASSWORD", getattr(settings, "SMTP_PASSWORD", ""))
-        from_email = os.getenv("SMTP_FROM", getattr(settings, "SMTP_FROM_EMAIL", smtp_user or "santhethao.ictu@gmail.com"))
+        from_email = os.getenv("SMTP_FROM") or smtp_user
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"Hệ Thống Sân Thể Thao ICTU <{from_email}>"
+        msg["From"] = formataddr((str(Header(settings.SMTP_FROM_NAME, "utf-8")), from_email))
         msg["To"] = to_email
 
         part1 = MIMEText(body_text, "plain", "utf-8")
@@ -53,7 +58,7 @@ class EmailService:
                     <p style="color: #64748b; font-size: 12px; margin: 4px 0 0 0;">Hệ Thống Đặt Sân Tự Động & Trợ Lý AI Thông Minh | Hotline: 0816227206</p>
                 </div>
                 <div style="color: #334155; line-height: 1.6; font-size: 14px; white-space: pre-line;">
-                    {body_text}
+                    {escape(body_text)}
                 </div>
                 <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8;">
                     <p style="margin: 0;">Mọi thắc mắc xin liên hệ Hotline / Zalo: <strong>0816227206</strong></p>
@@ -65,50 +70,78 @@ class EmailService:
         msg.attach(part2)
 
         smtp_error = None
+        smtp_phase = "kết nối"
         if smtp_user and smtp_password:
             try:
-                server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
-                server.starttls()
-                server.login(smtp_user, smtp_password)
-                server.sendmail(from_email, [to_email], msg.as_string())
-                server.quit()
+                smtp_class = smtplib.SMTP_SSL if smtp_port == 465 else smtplib.SMTP
+                with smtp_class(smtp_host, smtp_port, timeout=15) as server:
+                    smtp_phase = "EHLO"
+                    server.ehlo()
+                    if smtp_port != 465 and settings.SMTP_TLS:
+                        smtp_phase = "STARTTLS"
+                        server.starttls(context=ssl.create_default_context())
+                        smtp_phase = "EHLO sau TLS"
+                        server.ehlo()
+                    smtp_phase = "xác thực tài khoản"
+                    server.login(smtp_user, smtp_password)
+                    smtp_phase = "gửi thư"
+                    refused_recipients = server.send_message(
+                        msg,
+                        from_addr=from_email,
+                        to_addrs=[to_email],
+                    )
+                    if refused_recipients:
+                        raise smtplib.SMTPRecipientsRefused(refused_recipients)
                 return {
                     "success": True,
                     "mode": "LIVE_SMTP",
                     "message": f"Đã gửi email thành công đến {to_email} qua SMTP!"
                 }
-            except Exception as e:
-                smtp_error = str(e)
-                print(f"[EmailService] Lỗi SMTP: {smtp_error}")
+            except (smtplib.SMTPException, OSError, ssl.SSLError, ValueError) as e:
+                smtp_error = e
 
         outbox_path = EmailService._save_local_outbox(to_email, subject, body_text)
         if smtp_error:
-            if "535" in smtp_error or "Username and Password not accepted" in smtp_error:
-                clean_err = "Mật khẩu SMTP chưa chính xác (Lỗi 535). Gmail yêu cầu Mật khẩu ứng dụng 16 ký tự (App Password), không dùng mật khẩu Gmail thường."
-            elif "timed out" in smtp_error.lower() or "timeout" in smtp_error.lower():
-                clean_err = "Kết nối máy chủ SMTP bị quá thời gian (Timeout). Vui lòng kiểm tra lại mạng hoặc cổng 587."
+            if isinstance(smtp_error, smtplib.SMTPAuthenticationError):
+                clean_err = "Mật khẩu SMTP chưa chính xác. Gmail yêu cầu Mật khẩu ứng dụng 16 ký tự (App Password), không dùng mật khẩu Gmail thường."
+            elif isinstance(smtp_error, (TimeoutError, socket.timeout)):
+                clean_err = "Kết nối máy chủ SMTP bị quá thời gian. Vui lòng kiểm tra mạng và cổng SMTP."
+            elif isinstance(smtp_error, smtplib.SMTPRecipientsRefused):
+                clean_err = "Máy chủ SMTP từ chối địa chỉ email người nhận. Vui lòng kiểm tra lại email."
+            elif isinstance(smtp_error, smtplib.SMTPServerDisconnected):
+                if smtp_phase == "xác thực tài khoản":
+                    clean_err = (
+                        "Gmail đã đóng kết nối ở bước xác thực tài khoản. "
+                        "Email gửi và Mật khẩu ứng dụng có thể không cùng một tài khoản, "
+                        "hoặc App Password đã bị thu hồi. Hãy tạo App Password mới trong đúng tài khoản Gmail."
+                    )
+                else:
+                    clean_err = (
+                        f"Máy chủ SMTP đã đóng kết nối ở bước {smtp_phase}. "
+                        "Kiểm tra lại cấu hình cổng và mạng/firewall."
+                    )
+            elif isinstance(smtp_error, (ssl.SSLError, smtplib.SMTPConnectError, socket.gaierror)):
+                clean_err = "Không thể kết nối SMTP an toàn. Vui lòng kiểm tra máy chủ, cổng và kết nối mạng."
             else:
-                clean_err = f"Lỗi gửi thư SMTP: {smtp_error[:80]}..."
+                clean_err = f"Lỗi SMTP: {str(smtp_error)[:120]}"
 
             file_name = os.path.basename(outbox_path)
-            print(f"[EmailService] {clean_err} Đã lưu vào outbox local tại {outbox_path}")
             return {
                 "success": False,
                 "mode": "SMTP_ERROR",
                 "recipient": to_email,
                 "subject": subject,
                 "outbox_path": outbox_path,
-                "message": f"{clean_err} Hệ thống đã tự động lưu thư vào Hộp thư hệ thống ({file_name})."
+                "message": f"{clean_err} Thư CHƯA được gửi; bản nháp đã lưu trong Hộp thư hệ thống ({file_name})."
             }
 
-        print(f"[EmailService] Chưa cấu hình SMTP; email đã được lưu vào local outbox: {outbox_path}")
         return {
-            "success": True,
+            "success": False,
             "mode": "LOCAL_OUTBOX",
             "recipient": to_email,
             "subject": subject,
             "outbox_path": outbox_path,
-            "message": "Email đã được lưu vào hộp thư local. Cấu hình SMTP Gmail App Password để gửi thật đến khách hàng."
+            "message": "Email CHƯA được gửi vì chưa cấu hình SMTP. Bản nháp đã lưu trong Hộp thư hệ thống; hãy cấu hình Gmail App Password để gửi thật."
         }
 
     @staticmethod
@@ -176,4 +209,3 @@ Hotline hỗ trợ: 0816227206
             except Exception as e:
                 print(f"[EmailService] Lỗi đọc eml {f}: {e}")
         return results
-

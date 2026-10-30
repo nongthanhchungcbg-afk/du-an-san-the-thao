@@ -322,9 +322,9 @@ def create_installation_guide_docx(output_path):
         r.font.color.rgb = RGBColor(255, 255, 255)
 
     acc_data = [
-        ("Admin (Quản trị viên)", "admin", "admin123", "Toàn quyền quản lý sân, bảng giá, xem báo cáo doanh thu & gợi ý chiến lược AI."),
-        ("Nhân viên (Lễ tân)", "nhanvien", "staff123", "Tạo đơn đặt sân, thu cọc, đổi/hủy lịch, sinh tin nhắn thông báo AI gửi khách."),
-        ("Khách hàng", "khachhang", "user123", "Tra cứu sân trống, nhờ AI tư vấn giờ, đặt sân và xem lịch sử đơn cá nhân.")
+        ("Admin (Quản trị viên)", "nongthanhchung", "Admin", "Toàn quyền quản lý sân, bảng giá, xem báo cáo doanh thu & gợi ý chiến lược AI."),
+        ("Nhân viên (Lễ tân)", "nguyenvanloc", "Nhanvien", "Tạo đơn đặt sân, thu cọc, đổi/hủy lịch, sinh tin nhắn thông báo AI gửi khách."),
+        ("Khách hàng", "hoangtrituong", "Khachhang", "Tra cứu sân trống, nhờ AI tư vấn giờ, đặt sân và xem lịch sử đơn cá nhân.")
     ]
     for r_idx, row_values in enumerate(acc_data, start=1):
         row = t_acc.rows[r_idx]
@@ -492,9 +492,9 @@ Truy cập địa chỉ: `http://127.0.0.1:8000`
 
 | Vai trò | Tên đăng nhập | Mật khẩu | Quyền hạn chính |
 |---|---|---|---|
-| **Admin (Quản trị viên)** | `admin` | `admin123` | Toàn quyền cấu hình sân, giá giờ vàng, xem doanh thu & đề xuất voucher AI |
-| **Nhân viên (Lễ tân)** | `nhanvien` | `staff123` | Đặt sân tại quầy, thu tiền cọc, đổi/hủy lịch, sinh tin nhắn AI gửi khách |
-| **Khách hàng** | `khachhang` | `user123` | Tra cứu sân trống, nhờ AI tư vấn giờ đá, đặt sân trực tuyến |
+| **Admin (Quản trị viên)** | `nongthanhchung` | `Admin` | Toàn quyền cấu hình sân, giá giờ vàng, xem doanh thu & đề xuất voucher AI |
+| **Nhân viên (Lễ tân)** | `nguyenvanloc` | `Nhanvien` | Đặt sân tại quầy, thu tiền cọc, đổi/hủy lịch, sinh tin nhắn AI gửi khách |
+| **Khách hàng** | `hoangtrituong` | `Khachhang` | Tra cứu sân trống, nhờ AI tư vấn giờ đá, đặt sân trực tuyến |
 
 ---
 

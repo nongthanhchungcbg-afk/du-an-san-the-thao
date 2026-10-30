@@ -6,21 +6,59 @@ from app.models import Pitch, Booking, Customer, User, UserRole
 
 client = TestClient(app)
 
-def test_homepage_uses_one_background_video_without_clip_switcher():
+def test_homepage_uses_a_static_hero_image_without_video():
     res = client.get("/")
 
     assert res.status_code == 200
-    assert res.text.count('<video id="bg-hero-video"') == 1
-    assert res.text.count('<source src="/static/videos/nensanthethao.mp4"') == 1
+    assert 'id="bg-hero-image"' in res.text
+    assert "pitch-02.jpg" in client.get("/static/css/custom.css").text
+    assert "<video" not in res.text
+    assert "toggleVideoPlay" not in res.text
+    image = client.get("/static/images/pitch-02.jpg")
+    assert image.status_code == 200
+    assert image.headers["content-type"].startswith("image/jpeg")
+    assert 'id="wallet-history-pagination"' in res.text
+    assert 'id="my-bookings-pagination"' in res.text
+    assert 'max-w-4xl' in res.text
     assert "Clip 1" not in res.text
     assert "Clip 2" not in res.text
     assert "Clip 3" not in res.text
     assert "Clip 4" not in res.text
 
+def test_refresh_controls_show_loading_and_api_timestamps_use_vietnam_time():
+    page = client.get("/")
+    script = client.get("/static/js/app.js")
+
+    assert page.status_code == 200
+    assert script.status_code == 200
+    assert "timeZone: 'Asia/Ho_Chi_Minh'" in script.text
+    assert "async function runButtonLoading(button, action)" in script.text
+    assert 'id="btn-save-smtp"' in page.text
+    assert 'id="smtp-port-input"' in page.text
+    assert "Đang lưu và gửi thử..." in script.text
+    assert 'id="btn-send-otp"' in page.text
+    assert "Đang gửi mã..." in script.text
+    assert "Email phải trùng với email đã đăng ký" in page.text
+    for action in [
+        "loadMyRecentBookings()",
+        "loadDashboardStats()",
+        "loadAIDashboardSummary(true)",
+        "loadAdminTimeSlots()",
+        "loadPricingTable()",
+        "loadPayments(true)",
+        "loadMaintenances(true)",
+        "loadUserRolesList(true)",
+        "loadActivityLogs(true)",
+        "loadCustomers()",
+        "loadWalletData()",
+        "loadMyBookings()",
+    ]:
+        assert f"runButtonLoading(this, () => {action})" in page.text
+
 def get_admin_headers():
     res = client.post("/api/auth/login", json={
-        "username": "admin",
-        "password": "admin123"
+        "username": "nongthanhchung",
+        "password": "Admin"
     })
     token = res.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -117,7 +155,7 @@ def test_table16_booking_conflict_and_payments_by_booking():
         "start_time": "14:30",
         "end_time": "16:00",
         "payment_method": "CASH"
-    })
+    }, headers=get_admin_headers())
     assert res_book.status_code == 200
     b_id = res_book.json()["id"]
 

@@ -397,11 +397,23 @@ function showToast(msg, type = 'info') {
     if (!container) return;
     const toast = document.createElement('div');
     const bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : type === 'warning' ? 'bg-amber-600' : 'bg-slate-800';
-    const icon = type === 'success' ? 'fa-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-info';
-    toast.className = `${bg} text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-white/20 flex items-center space-x-2 transition transform duration-300 animate-in slide-in-from-bottom-2`;
-    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+    const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info';
+    let displayMsg = String(msg || '');
+    if (displayMsg.length > 130) {
+        displayMsg = displayMsg.slice(0, 127) + '...';
+    }
+    toast.className = `${bg} text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl shadow-xl border border-white/20 flex items-center justify-between gap-2.5 transition transform duration-300 animate-in slide-in-from-bottom-2`;
+    toast.innerHTML = `
+        <div class="flex items-center gap-2">
+            <i class="fa-solid ${icon} text-sm flex-shrink-0"></i>
+            <span class="leading-tight">${displayMsg}</span>
+        </div>
+        <button type="button" onclick="this.closest('div').parentElement.remove()" class="text-white/70 hover:text-white text-xs flex-shrink-0 cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
     container.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 4000);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4500);
 }
 
 // TOPBAR & NAVIGATION
@@ -2209,9 +2221,9 @@ async function handleMatrixBookingSubmit(e) {
 
         let emailNotice = '';
         if (data.email_result && data.email_result.mode === 'LIVE_SMTP') {
-            emailNotice = ` 📧 Đã gửi email xác nhận trực tiếp đến ${custEmail}!`;
+            emailNotice = ' (Đã gửi email)';
         } else if (custEmail) {
-            emailNotice = ` ℹ️ Thư xác nhận đã được lưu vào Hộp Thư Hệ Thống (Local Outbox - do chưa điền SMTP_USER trong file .env).`;
+            emailNotice = ' (Đã lưu nháp)';
         }
 
         if (payMethod === 'WALLET') {
@@ -2223,6 +2235,12 @@ async function handleMatrixBookingSubmit(e) {
         } else {
             showToast(`🎉 Đặt sân #${data.id} thành công! Quý khách thanh toán tại sân.${emailNotice}`, 'success');
         }
+
+        // Đặt lại bộ lọc ngày để đơn mới luôn hiển thị ngay ở Quản lý đặt sân
+        const bookingDateFilterInput = document.getElementById('booking-filter-date');
+        if (bookingDateFilterInput) bookingDateFilterInput.value = '';
+        if (!state.bookings) state.bookings = [];
+        state.bookings.unshift(data);
 
         // Tự động tải lại ma trận và toàn bộ danh sách đơn ngay lập tức
         renderLiveRecentBookings(state.recentCreatedBookings.slice(0, 5));
@@ -2287,11 +2305,11 @@ async function loadBookings(manual = false) {
                 approveBtn = '<button disabled class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 cursor-not-allowed px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-300 whitespace-nowrap"><i class="fa-solid fa-circle-check text-emerald-700"></i> Đã Duyệt</button>';
                 const bookingEnd = new Date(`${b.booking_date}T${b.end_time}:00`);
                 if (bookingEnd <= new Date()) {
-                    completeBtn = `<button onclick="completeBooking(${b.id})" class="inline-flex items-center gap-1 bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap" title="Xác nhận khách đã trả sân"><i class="fa-solid fa-flag-checkered"></i> Hoàn tất</button>`;
+                    completeBtn = `<button onclick="completeBooking(${b.id})" class="inline-flex items-center gap-1 bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap" title="Xác nhận khách đã trả sân"><i class="fa-solid fa-flag-checkered"></i> Xong</button>`;
                 }
             } else if (b.status === 'PENDING') {
                 statusBadge = '<span class="px-3.5 py-1 rounded-full text-xs font-extrabold bg-amber-400 text-slate-900 shadow-sm border border-amber-500 whitespace-nowrap inline-flex items-center justify-center min-w-max">CHỜ DUYỆT</span>';
-                approveBtn = `<button onclick="confirmBookingAndInvoice(${b.id})" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap"><i class="fa-solid fa-check"></i> Duyệt Đơn</button>`;
+                approveBtn = `<button onclick="confirmBookingAndInvoice(${b.id})" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap"><i class="fa-solid fa-check"></i> Duyệt</button>`;
             } else {
                 statusBadge = '<span class="px-3.5 py-1 rounded-full text-xs font-extrabold bg-rose-500 text-white shadow-sm border border-rose-400 whitespace-nowrap inline-flex items-center justify-center min-w-max">ĐÃ HỦY</span>';
                 approveBtn = '<button disabled class="inline-flex items-center gap-1 bg-rose-100 text-rose-700 cursor-not-allowed px-2.5 py-1 rounded-lg text-xs font-bold border border-rose-300 whitespace-nowrap">Đã Hủy</button>';
@@ -2299,19 +2317,21 @@ async function loadBookings(manual = false) {
 
             const canManage = b.status !== 'COMPLETED' && b.status !== 'CANCELLED';
             return `
-                <tr class="hover:bg-slate-100 transition">
-                    <td class="p-3.5 font-mono text-teal-700 font-bold whitespace-nowrap">#${b.id}</td>
-                    <td class="p-3.5"><strong class="text-slate-900">${b.customer_name}</strong><br><span class="text-slate-600 font-mono text-[11px]">${b.customer_phone}</span></td>
-                    <td class="p-3.5"><strong class="text-slate-800">${b.pitch?.name || 'Sân'}</strong><br><span class="text-[10px] text-slate-600">${b.pitch?.location || ''}</span></td>
-                    <td class="p-3.5 font-mono text-slate-700 whitespace-nowrap">${b.start_time}-${b.end_time}<br><span class="text-slate-600 text-[11px]">${b.booking_date}</span></td>
-                    <td class="p-3.5 whitespace-nowrap"><strong class="text-emerald-700 font-mono">${(Number(b.total_price) || 0).toLocaleString()}đ</strong><br><span class="text-[10px] text-blue-700 font-mono">Cọc: ${(Number(b.deposit_amount) || 0).toLocaleString()}đ</span></td>
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <td class="p-3.5 font-mono text-teal-700 dark:text-teal-400 font-bold whitespace-nowrap">#${b.id}</td>
+                    <td class="p-3.5"><strong class="text-slate-900 dark:text-slate-100">${b.customer_name}</strong><br><span class="text-slate-600 dark:text-slate-400 font-mono text-[11px]">${b.customer_phone}</span></td>
+                    <td class="p-3.5"><strong class="text-slate-800 dark:text-slate-200">${b.pitch?.name || 'Sân'}</strong><br><span class="text-[10px] text-slate-500">${b.pitch?.location || ''}</span></td>
+                    <td class="p-3.5 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">${b.start_time}-${b.end_time}<br><span class="text-slate-500 text-[11px]">${b.booking_date}</span></td>
+                    <td class="p-3.5 whitespace-nowrap"><strong class="text-emerald-700 dark:text-emerald-400 font-mono">${(Number(b.total_price) || 0).toLocaleString()}đ</strong><br><span class="text-[10px] text-blue-700 dark:text-blue-400 font-mono">Cọc: ${(Number(b.deposit_amount) || 0).toLocaleString()}đ</span></td>
                     <td class="p-3.5 text-center whitespace-nowrap">${statusBadge}</td>
-                    <td class="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                        <button onclick="openAINotifDialog(${b.id})" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap" title="Tạo tin nhắn xác nhận AI"><i class="fa-solid fa-wand-magic-sparkles"></i> Tạo tin nhắn xác nhận</button>
-                        ${canManage ? `<button onclick="openEditBookingModal(${b.id})" class="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap" title="Sửa / Đổi lịch đặt sân"><i class="fa-solid fa-pen-to-square"></i> Đổi Lịch</button>` : ''}
-                        ${approveBtn}
-                        ${completeBtn}
-                        ${canManage ? `<button onclick="cancelAdminBooking(${b.id})" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap" title="Hủy đơn"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                    <td class="p-3.5 text-right whitespace-nowrap">
+                        <div class="inline-flex items-center justify-end gap-1.5 flex-nowrap">
+                            <button onclick="openAINotifDialog(${b.id})" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap" title="Tạo tin nhắn xác nhận AI"><i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> Nhắn AI</button>
+                            ${canManage ? `<button onclick="openEditBookingModal(${b.id})" class="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap" title="Sửa / Đổi lịch đặt sân"><i class="fa-solid fa-pen-to-square"></i> Đổi Lịch</button>` : ''}
+                            ${approveBtn}
+                            ${completeBtn}
+                            ${canManage ? `<button onclick="cancelAdminBooking(${b.id})" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap" title="Hủy đơn"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+                        </div>
                     </td>
                 </tr>
             `;
@@ -4733,22 +4753,29 @@ function renderAISuggestTable() {
         const priceText = hourlyPrice ? `${hourlyPrice.toLocaleString()} đ/giờ` : 'Giá tiêu chuẩn';
         const reason = s.reason || 'Khung giờ thoáng, phù hợp thể lực và thời tiết lý tưởng';
 
+        const isTop = (globalIdx === 1);
         return `
-            <tr class="hover:bg-slate-900/90 transition border-b border-slate-800/60">
-                <td class="p-3.5 font-bold text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xs font-mono font-bold">${globalIdx}</span>
-                    <span class="text-sm font-semibold text-slate-100">${pitchName}</span>
+            <tr class="hover:bg-emerald-50 dark:hover:bg-slate-800/60 transition border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <td class="p-3.5 font-bold flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-xl ${isTop ? 'bg-amber-500 text-white shadow' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'} flex items-center justify-center text-xs font-mono font-bold">${globalIdx}</span>
+                    <div>
+                        <div class="text-sm font-bold text-slate-800 dark:text-slate-100">${escapeHtml(pitchName)}</div>
+                        ${isTop ? '<span class="text-[10px] font-bold text-amber-600 dark:text-amber-400"><i class="fa-solid fa-crown mr-1"></i>Đề xuất số 1</span>' : ''}
+                    </div>
                 </td>
-                <td class="p-3.5 font-mono text-amber-300 font-bold text-sm">
-                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">${timeRange}</span>
+                <td class="p-3.5 font-mono font-bold text-sm">
+                    <span class="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">${timeRange}</span>
                 </td>
-                <td class="p-3.5 font-mono text-emerald-400 font-extrabold text-sm">${priceText}</td>
-                <td class="p-3.5 text-slate-300 text-xs leading-relaxed max-w-md">
-                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-medium">${reason}</span>
+                <td class="p-3.5 font-mono text-emerald-600 dark:text-emerald-400 font-extrabold text-sm whitespace-nowrap">${priceText}</td>
+                <td class="p-3.5 text-xs leading-relaxed max-w-md">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-medium">
+                        <i class="fa-solid fa-sparkles text-amber-500 text-xs"></i>
+                        ${escapeHtml(reason)}
+                    </span>
                 </td>
                 <td class="p-3.5 text-right whitespace-nowrap">
-                    <button type="button" onclick="selectSuggestedSlot(${pitchId}, '${date}', '${s.start_time}', '${s.end_time}')" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 transition transform hover:scale-105 cursor-pointer">
-                        <i class="fa-solid fa-check-circle mr-1.5"></i> Chọn Giờ Này
+                    <button type="button" onclick="selectSuggestedSlot(${pitchId}, '${date}', '${s.start_time}', '${s.end_time}')" class="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-md transition transform hover:scale-105 cursor-pointer">
+                        <i class="fa-solid fa-calendar-check"></i> Chọn Giờ Này
                     </button>
                 </td>
             </tr>

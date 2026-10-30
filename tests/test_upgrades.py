@@ -94,7 +94,7 @@ def test_booking_edit_and_conflict():
         "start_time": "08:00",
         "end_time": "10:00",
         "payment_method": "CASH"
-    })
+    }, headers=headers)
     assert res1.status_code == 200
     b1_id = res1.json()["id"]
 
@@ -107,7 +107,7 @@ def test_booking_edit_and_conflict():
         "start_time": "14:00",
         "end_time": "16:00",
         "payment_method": "CASH"
-    })
+    }, headers=headers)
     assert res2.status_code == 200
     b2_id = res2.json()["id"]
 

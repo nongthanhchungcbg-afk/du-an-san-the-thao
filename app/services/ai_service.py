@@ -421,7 +421,7 @@ class AIService:
             )
             return {
                 "response": resp_text,
-                "suggested_slots": matching_slots,
+                "suggested_slots": matching_slots[:3],
                 "source": "AI_SMART_SLOT_ANALYZER"
             }
         else:

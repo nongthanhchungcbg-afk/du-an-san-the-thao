@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
 from pydantic import BaseModel
+from app.config import settings
 from app.database import get_db
 from app.models import User, UserRole, UserActivityLog
 from app.schemas import (
@@ -138,11 +139,11 @@ def google_login(data: Optional[GoogleLoginRequest] = None, request: Request = N
     
     if not user:
         if email == "nongthanhchung.ictu@gmail.com":
-            user = db.query(User).filter(User.username == "admin").first()
+            user = db.query(User).filter(User.username == "nongthanhchung").first()
         elif email == "loctech.ictu@gmail.com":
             user = db.query(User).filter(User.username == "quanly").first()
         elif email == "tuonght.ictu@gmail.com":
-            user = db.query(User).filter(User.username == "khachhang").first()
+            user = db.query(User).filter(User.username == "hoangtrituong").first()
 
     if not user:
         role_enum = UserRole.CUSTOMER
@@ -200,11 +201,16 @@ def send_reset_otp(data: SendOTPRequest, db: Session = Depends(get_db)):
     db.commit()
 
     # Gửi email thật qua SMTP
-    EmailService.send_otp_reset_email(
+    email_result = EmailService.send_otp_reset_email(
         to_email=user.email,
         full_name=user.full_name,
         otp_code=otp_code
     )
+    if not email_result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=email_result.get("message", "Không gửi được mã xác thực qua email.")
+        )
 
     return {
         "status": "success",
@@ -330,7 +336,7 @@ def configure_smtp_settings(
     host = config.smtp_host or "smtp.gmail.com"
     port = str(config.smtp_port or 587)
     user = config.smtp_user.strip()
-    password = config.smtp_password.strip()
+    password = "".join(config.smtp_password.split())
     from_email = config.from_email.strip() if config.from_email else user
 
     os.environ["SMTP_HOST"] = host

@@ -226,7 +226,7 @@ def create_booking(
     booking_in: BookingCreate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     pitch = db.query(Pitch).filter(Pitch.id == booking_in.pitch_id).first()
     if not pitch:
@@ -255,8 +255,7 @@ def create_booking(
 
 
     total_price = calculate_pitch_price(pitch, booking_in.start_time, booking_in.end_time)
-    user_id = current_user.id if current_user else None
-    invoice_email = (booking_in.invoice_email.strip() if booking_in.invoice_email else None) or (current_user.email if current_user else None) or f"{booking_in.customer_phone}@guest.vn"
+    invoice_email = (booking_in.invoice_email.strip() if booking_in.invoice_email else None) or current_user.email or f"{booking_in.customer_phone}@guest.vn"
 
     # Tự động đồng bộ / tạo khách hàng vào bảng Customer
     customer = db.query(Customer).filter(Customer.phone == booking_in.customer_phone.strip()).first()
@@ -276,8 +275,6 @@ def create_booking(
 
     # Xử lý thanh toán qua Ví điện tử
     if booking_in.payment_method == PaymentMethod.WALLET:
-        if not current_user:
-            raise HTTPException(status_code=401, detail="Vui lòng đăng nhập để thanh toán bằng Ví điện tử")
         if (current_user.wallet_balance or 0.0) < total_price:
             raise HTTPException(
                 status_code=400, 
@@ -289,7 +286,7 @@ def create_booking(
     is_paid_upfront = (booking_in.payment_method == PaymentMethod.WALLET) or (booking_in.deposit_amount and booking_in.deposit_amount >= total_price)
 
     new_booking = Booking(
-        user_id=user_id,
+        user_id=current_user.id,
         customer_id=customer_id,
         pitch_id=booking_in.pitch_id,
         customer_name=booking_in.customer_name,
@@ -338,7 +335,7 @@ def create_booking(
         db.commit()
 
     # Gửi email thật xác nhận đặt sân
-    dest_email = (booking_in.invoice_email.strip() if booking_in.invoice_email else None) or (current_user.email if current_user else None) or (customer.email if customer and customer.email else None)
+    dest_email = (booking_in.invoice_email.strip() if booking_in.invoice_email else None) or current_user.email or (customer.email if customer and customer.email else None)
     email_send_result = None
     if dest_email and "@" in dest_email and not dest_email.endswith("@guest.vn"):
         email_send_result = EmailService.send_booking_confirmation_email(
@@ -362,11 +359,11 @@ def create_booking(
 
     client_ip = request.client.host if request.client else "127.0.0.1"
     log = UserActivityLog(
-        user_id=user_id,
+        user_id=current_user.id,
         customer_id=customer_id,
-        username=current_user.username if current_user else booking_in.customer_name,
+        username=current_user.username,
         action=f"Tạo đơn đặt sân #{new_booking.id} ({pitch.name} lúc {new_booking.start_time}-{new_booking.end_time} {new_booking.booking_date})",
-        role=current_user.role.value if current_user else "GUEST",
+        role=current_user.role.value,
         ip_address=client_ip
     )
     db.add(log)
@@ -397,7 +394,7 @@ def confirm_and_send_invoice(
 
     booking.status = BookingStatus.CONFIRMED
     booking.payment_status = PaymentStatus.PAID
-    booking.invoice_sent = True
+    booking.invoice_sent = False
 
     payment = db.query(Payment).filter(Payment.booking_id == booking_id).first()
     if payment:
@@ -442,11 +439,17 @@ def confirm_and_send_invoice(
             to_email=dest_email
         )
 
+    if email_res and email_res.get("mode") == "LIVE_SMTP" and email_res.get("success"):
+        booking.invoice_sent = True
+        db.commit()
+
     msg = f"Đã duyệt đơn #{booking.id} thành công!"
     if email_res and email_res.get("mode") == "LIVE_SMTP":
         msg += f" Đã gửi hóa đơn điện tử trực tiếp đến {dest_email} qua SMTP."
+    elif email_res:
+        msg += f" Email chưa được gửi: {email_res.get('message', 'Vui lòng kiểm tra cấu hình SMTP.')}"
     elif dest_email:
-        msg += f" (Chú ý: Chưa cấu hình SMTP_USER trong .env, thư đã được lưu tự động vào Hộp Thư Hệ Thống Local Outbox)."
+        msg += " Không thể gửi hóa đơn do thiếu thông tin email người nhận."
 
     return {
         "status": "success",

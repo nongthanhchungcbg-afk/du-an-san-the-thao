@@ -18,41 +18,25 @@ def seed():
     print("-> Khoi tao nguoi dung chinh chu (Nhom 03 ICTU)...")
     users = [
         User(
-            username="admin",
+            username="nongthanhchung",
             email="thanhchung.ictu@gmail.com",
-            hashed_password=get_password_hash("admin123"),
+            hashed_password=get_password_hash("Admin"),
             full_name="Nông Thành Chung",
             phone="0816227206",
             role=UserRole.ADMIN
         ),
         User(
-            username="thanhchung",
-            email="nongthanhchung@ictu.edu.vn",
-            hashed_password=get_password_hash("chung123"),
-            full_name="Nông Thành Chung (Nhóm Trưởng)",
-            phone="0816227206",
-            role=UserRole.ADMIN
-        ),
-        User(
-            username="nhanvien",
+            username="nguyenvanloc",
             email="locnguyen@thethaoictu.vn",
-            hashed_password=get_password_hash("staff123"),
+            hashed_password=get_password_hash("Nhanvien"),
             full_name="Nguyễn Văn Lộc",
             phone="0977234567",
             role=UserRole.STAFF
         ),
         User(
             username="hoangtrituong",
-            email="tuonghoang@thethaoictu.vn",
-            hashed_password=get_password_hash("tuong123"),
-            full_name="Hoàng Trí Tường",
-            phone="0988654321",
-            role=UserRole.STAFF
-        ),
-        User(
-            username="khachhang",
             email="hungnguyen@gmail.com",
-            hashed_password=get_password_hash("user123"),
+            hashed_password=get_password_hash("Khachhang"),
             full_name="Nguyễn Văn Hùng",
             phone="0912345678",
             role=UserRole.CUSTOMER

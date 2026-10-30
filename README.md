@@ -36,9 +36,9 @@
 ## 🔑 Tài Khoản Đăng Nhập Mẫu (Có nút đăng nhập nhanh 1 chạm trên giao diện)
 | Vai trò | Tên đăng nhập | Mật khẩu | Quyền hạn |
 |---|---|---|---|
-| **Admin (Quản lý)** | `admin` | `admin123` | Toàn quyền quản trị sân, bảng giá, xem báo cáo AI |
-| **Nhân viên (Lễ tân)** | `nhanvien` | `staff123` | Đặt sân, hủy/đổi lịch, thu cọc, sinh tin nhắn AI |
-| **Khách hàng** | `khachhang` | `user123` | Tìm sân, xem bảng giá, nhờ AI tư vấn giờ trống |
+| **Admin (Quản lý)** | `nongthanhchung` | `Admin` | Toàn quyền quản trị sân, bảng giá, xem báo cáo AI |
+| **Nhân viên (Lễ tân)** | `nguyenvanloc` | `Nhanvien` | Đặt sân, hủy/đổi lịch, thu cọc, sinh tin nhắn AI |
+| **Khách hàng** | `hoangtrituong` | `Khachhang` | Tìm sân, xem bảng giá, nhờ AI tư vấn giờ trống |
 
 ---
 

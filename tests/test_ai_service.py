@@ -1,9 +1,22 @@
 import uuid
+import smtplib
+from pathlib import Path
 from fastapi.testclient import TestClient
 from app.main import app
+from app.config import settings
+from app.routers import auth_router
 from app.services.ai_service import AIService
+from app.services.email_service import EmailService
 
 client = TestClient(app)
+
+def get_admin_headers():
+    login_res = client.post("/api/auth/login", json={
+        "username": "nongthanhchung",
+        "password": "Admin"
+    })
+    assert login_res.status_code == 200
+    return {"Authorization": f"Bearer {login_res.json()['access_token']}"}
 
 def test_slot_suggestions_preserve_iso_date_and_preferred_time():
     selected_date = "2026-10-02"
@@ -79,7 +92,7 @@ def test_ai_generate_notifications():
         "start_time": "05:00",
         "end_time": "06:00",
         "deposit_amount": 200000
-    })
+    }, headers=get_admin_headers())
     if bk_res.status_code != 200:
         bk_list = client.get("/api/bookings").json()
         booking_id = bk_list[0]["id"]
@@ -97,7 +110,7 @@ def test_ai_generate_notifications():
     assert "email_content" in data
 
 
-def test_ai_send_real_email_endpoint():
+def test_ai_send_real_email_endpoint(monkeypatch):
     bk_list = client.get("/api/bookings").json()
     if bk_list and len(bk_list) > 0:
         booking_id = bk_list[0]["id"]
@@ -115,9 +128,14 @@ def test_ai_send_real_email_endpoint():
             "payment_method": "CASH",
             "deposit_amount": 0.0,
             "invoice_email": "thanhchung.ictu@gmail.com"
-        })
+        }, headers=get_admin_headers())
         booking_id = bk_res.json()["id"]
 
+    monkeypatch.setattr(EmailService, "send_email", staticmethod(lambda **kwargs: {
+        "success": True,
+        "mode": "LIVE_SMTP",
+        "message": "Sent by test SMTP"
+    }))
     email_res = client.post("/api/ai/send-email", json={
         "booking_id": booking_id,
         "recipient_email": "thanhchung.ictu@gmail.com",
@@ -126,3 +144,182 @@ def test_ai_send_real_email_endpoint():
     })
     assert email_res.status_code == 200
     assert email_res.json()["success"] is True
+    assert email_res.json()["mode"] == "LIVE_SMTP"
+
+def test_email_saved_to_outbox_is_not_reported_as_sent(monkeypatch, tmp_path):
+    monkeypatch.delenv("SMTP_USER", raising=False)
+    monkeypatch.delenv("SMTP_PASSWORD", raising=False)
+    monkeypatch.setattr("app.services.email_service.settings.SMTP_USER", "")
+    monkeypatch.setattr("app.services.email_service.settings.SMTP_PASSWORD", "")
+    monkeypatch.setattr(EmailService, "_save_local_outbox", staticmethod(lambda *args: str(tmp_path / "draft.eml")))
+
+    result = EmailService.send_email("customer@example.com", "Test", "Message")
+
+    assert result["success"] is False
+    assert result["mode"] == "LOCAL_OUTBOX"
+    assert "CHƯA được gửi" in result["message"]
+
+def test_email_service_uses_starttls_and_authenticated_sender(monkeypatch):
+    calls = []
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout):
+            calls.append(("connect", host, port, timeout))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            calls.append(("close",))
+
+        def ehlo(self):
+            calls.append(("ehlo",))
+
+        def starttls(self, context):
+            calls.append(("starttls", context is not None))
+
+        def login(self, username, password):
+            calls.append(("login", username, password))
+
+        def send_message(self, message, from_addr, to_addrs):
+            calls.append(("send", from_addr, to_addrs, message["From"]))
+            return {}
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.gmail.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "sender@example.com")
+    monkeypatch.setenv("SMTP_PASSWORD", "application-password")
+    monkeypatch.delenv("SMTP_FROM", raising=False)
+    monkeypatch.setattr("app.services.email_service.smtplib.SMTP", FakeSMTP)
+
+    result = EmailService.send_email("customer@example.com", "Subject", "Body")
+
+    assert result["success"] is True
+    assert result["mode"] == "LIVE_SMTP"
+    assert ("starttls", True) in calls
+    assert ("login", "sender@example.com", "application-password") in calls
+    send_call = next(call for call in calls if call[0] == "send")
+    assert send_call[1:3] == ("sender@example.com", ["customer@example.com"])
+
+def test_smtp_disconnected_error_suggests_alternate_port(monkeypatch, tmp_path):
+    class DisconnectedSMTP:
+        def __init__(self, host, port, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def ehlo(self):
+            raise smtplib.SMTPServerDisconnected("Connection unexpectedly closed")
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.gmail.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "sender@example.com")
+    monkeypatch.setenv("SMTP_PASSWORD", "application-password")
+    monkeypatch.setattr("app.services.email_service.smtplib.SMTP", DisconnectedSMTP)
+    monkeypatch.setattr(EmailService, "_save_local_outbox", staticmethod(lambda *args: str(tmp_path / "draft.eml")))
+
+    result = EmailService.send_email("customer@example.com", "Subject", "Body")
+
+    assert result["mode"] == "SMTP_ERROR"
+    assert result["success"] is False
+    assert "bước EHLO" in result["message"]
+    assert "cấu hình cổng" in result["message"]
+    assert "CHƯA được gửi" in result["message"]
+
+def test_smtp_auth_disconnect_explains_account_password_mismatch(monkeypatch, tmp_path):
+    class AuthDisconnectedSMTP:
+        def __init__(self, host, port, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def ehlo(self):
+            return 250, b"OK"
+
+        def starttls(self, context):
+            return 220, b"Ready"
+
+        def login(self, username, password):
+            raise smtplib.SMTPServerDisconnected("Connection unexpectedly closed")
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.gmail.com")
+    monkeypatch.setenv("SMTP_PORT", "465")
+    monkeypatch.setenv("SMTP_USER", "sender@example.com")
+    monkeypatch.setenv("SMTP_PASSWORD", "application-password")
+    monkeypatch.setattr("app.services.email_service.smtplib.SMTP_SSL", AuthDisconnectedSMTP)
+    monkeypatch.setattr(EmailService, "_save_local_outbox", staticmethod(lambda *args: str(tmp_path / "draft.eml")))
+
+    result = EmailService.send_email("customer@example.com", "Subject", "Body")
+
+    assert result["mode"] == "SMTP_ERROR"
+    assert result["success"] is False
+    assert "xác thực tài khoản" in result["message"]
+    assert "App Password" in result["message"]
+    assert "CHƯA được gửi" in result["message"]
+
+def test_smtp_settings_endpoint_does_not_crash_on_missing_settings_import(monkeypatch):
+    env_path = (Path(__file__).resolve().parents[1] / ".env").resolve()
+    original_write_text = Path.write_text
+
+    def avoid_persisting_smtp_test_credentials(path, data, *args, **kwargs):
+        if path.resolve() == env_path:
+            return len(data)
+        return original_write_text(path, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", avoid_persisting_smtp_test_credentials)
+    monkeypatch.setattr(auth_router.EmailService, "send_email", staticmethod(lambda **kwargs: {
+        "success": False,
+        "mode": "SMTP_ERROR",
+        "message": "Controlled SMTP failure"
+    }))
+    monkeypatch.setenv("SMTP_HOST", "smtp.gmail.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "")
+    monkeypatch.setenv("SMTP_PASSWORD", "")
+    monkeypatch.setenv("SMTP_FROM", "")
+    monkeypatch.setattr(settings, "SMTP_HOST", "smtp.gmail.com")
+    monkeypatch.setattr(settings, "SMTP_PORT", 587)
+    monkeypatch.setattr(settings, "SMTP_USER", "")
+    monkeypatch.setattr(settings, "SMTP_PASSWORD", "")
+    monkeypatch.setattr(settings, "SMTP_FROM_EMAIL", "")
+
+    response = client.post(
+        "/api/auth/settings/smtp",
+        headers=get_admin_headers(),
+        json={
+            "smtp_user": "dummy@example.com",
+            "smtp_password": "not-a-real-password",
+            "test_recipient": "dummy@example.com"
+        }
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "warning"
+    assert response.json()["test_result"]["message"] == "Controlled SMTP failure"
+
+def test_ai_send_email_endpoint_returns_unsent_status(monkeypatch):
+    monkeypatch.setattr(EmailService, "send_email", staticmethod(lambda **kwargs: {
+        "success": False,
+        "mode": "LOCAL_OUTBOX",
+        "message": "SMTP chưa được cấu hình; thư được lưu ở outbox."
+    }))
+    bookings = client.get("/api/bookings").json()
+    assert bookings
+
+    response = client.post("/api/ai/send-email", json={
+        "booking_id": bookings[0]["id"],
+        "recipient_email": "customer@example.com",
+        "subject": "Test",
+        "content": "Message"
+    })
+
+    assert response.status_code == 200
+    assert response.json()["success"] is False
