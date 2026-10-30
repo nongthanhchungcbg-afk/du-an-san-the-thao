@@ -36,7 +36,7 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/css/custom.css?v=20261030_v2025">
+    <link rel="stylesheet" href="/static/css/custom.css?v=20261030_v2045">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
@@ -2736,63 +2736,12 @@
         </div>
     </div>
 
-    <!-- MODAL EDIT PRICING (SỬA BẢNG GIÁ KHUNG GIỜ) -->
-    <div id="modal-edit-pricing" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-card bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <div class="flex items-center space-x-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-tags"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-extrabold text-sm text-white">Chỉnh Sửa Bảng Giá Sân</h3>
-                        <p id="edit-pricing-pitch-name" class="text-xs text-indigo-400 font-bold">Sân Bóng Đá Mini A1</p>
-                    </div>
-                </div>
-                <button type="button" onclick="closeEditPricingModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 flex items-center justify-center transition cursor-pointer">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
 
-            <form onsubmit="handleUpdatePricingSubmit(event)" class="space-y-4">
-                <input type="hidden" id="edit-pricing-pitch-id">
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">Đơn giá Giờ Thường (06:00 - 16:30):</label>
-                    <div class="relative">
-                        <input type="number" id="edit-pricing-normal" step="10000" min="50000" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-emerald-400 font-mono font-bold focus:border-emerald-500 focus:outline-none pl-3 pr-10">
-                        <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">đ/h</span>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">Đơn giá Giờ Cao Điểm Tối (17:00 - 22:30):</label>
-                    <div class="relative">
-                        <input type="number" id="edit-pricing-peak" step="10000" min="50000" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-amber-400 font-mono font-bold focus:border-amber-500 focus:outline-none pl-3 pr-10">
-                        <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">đ/h</span>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">Đơn giá Ngày Cuối Tuần (Tham Khảo):</label>
-                    <div class="relative">
-                        <input type="number" id="edit-pricing-weekend" step="10000" min="50000" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-purple-400 font-mono font-bold focus:border-purple-500 focus:outline-none pl-3 pr-10">
-                        <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">đ/h</span>
-                    </div>
-                </div>
-
-                <div class="pt-3 border-t border-slate-800 flex justify-end space-x-2">
-                    <button type="button" onclick="closeEditPricingModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition">Hủy Bỏ</button>
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg transition">Lưu Thay Đổi</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- TOAST CONTAINER -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 max-w-md w-auto pointer-events-none"></div>
 
     <!-- MAIN APP SCRIPT -->
-    <script src="/static/js/app.js?v=20261030_v2025"></script>
+    <script src="/static/js/app.js?v=20261030_v2045"></script>
 </body>
 </html>

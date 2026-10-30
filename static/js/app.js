@@ -611,20 +611,47 @@ function filterPricingSport(sport) {
     loadPricingTable(sport);
 }
 
-function openEditPricingModal(pitchId) {
-    const pitch = (state.pitches || []).find(p => p.id === pitchId);
-    if (!pitch) return;
-
+async function openEditPricingModal(pitchId = null) {
     const modal = document.getElementById('modal-edit-pricing');
     if (!modal) return;
 
-    document.getElementById('edit-pricing-pitch-id').value = pitch.id;
-    document.getElementById('edit-pricing-pitch-name').innerText = pitch.name;
-    document.getElementById('edit-pricing-normal').value = pitch.price_per_hour || 200000;
-    document.getElementById('edit-pricing-peak').value = pitch.peak_price_per_hour || (pitch.price_per_hour ? pitch.price_per_hour * 1.3 : 260000);
-    document.getElementById('edit-pricing-weekend').value = Math.round((pitch.price_per_hour || 200000) * 1.2);
+    if (!state.pitches || state.pitches.length === 0) {
+        await loadPitches();
+    }
+
+    const select = document.getElementById('pricing-edit-pitch-id');
+    if (select) {
+        let html = '<option value="">-- Chọn Sân Cần Cấu Hình Bảng Giá --</option>';
+        (state.pitches || []).forEach(p => {
+            const isSel = (pitchId && p.id === parseInt(pitchId)) ? 'selected' : '';
+            html += `<option value="${p.id}" ${isSel}>${p.name} (${p.sport_type} - ${p.location || 'Cơ sở 1'})</option>`;
+        });
+        select.innerHTML = html;
+    }
+
+    let targetId = pitchId;
+    if (!targetId && state.pitches && state.pitches.length > 0) {
+        targetId = state.pitches[0].id;
+        if (select) select.value = targetId;
+    }
+
+    if (targetId) {
+        populatePricingFieldsForPitch(targetId);
+    }
 
     modal.classList.remove('hidden');
+}
+
+function populatePricingFieldsForPitch(pitchId) {
+    if (!pitchId) return;
+    const pitch = (state.pitches || []).find(p => p.id === parseInt(pitchId));
+    if (!pitch) return;
+
+    const normalInput = document.getElementById('pricing-edit-normal-price');
+    const peakInput = document.getElementById('pricing-edit-peak-price');
+
+    if (normalInput) normalInput.value = pitch.price_per_hour || 200000;
+    if (peakInput) peakInput.value = pitch.peak_price_per_hour || (pitch.price_per_hour ? Math.round(pitch.price_per_hour * 1.3) : 260000);
 }
 
 function closeEditPricingModal() {
@@ -634,9 +661,24 @@ function closeEditPricingModal() {
 
 async function handleUpdatePricingSubmit(e) {
     if (e) e.preventDefault();
-    const pitchId = parseInt(document.getElementById('edit-pricing-pitch-id').value);
-    const normal = parseFloat(document.getElementById('edit-pricing-normal').value);
-    const peak = parseFloat(document.getElementById('edit-pricing-peak').value);
+    const select = document.getElementById('pricing-edit-pitch-id');
+    const pitchId = select ? parseInt(select.value) : null;
+    if (!pitchId) {
+        showToast('Vui lòng chọn một sân thể thao từ danh sách!', 'warning');
+        return;
+    }
+
+    const normalInput = document.getElementById('pricing-edit-normal-price');
+    const peakInput = document.getElementById('pricing-edit-peak-price');
+    const normal = normalInput ? parseFloat(normalInput.value) : 200000;
+    const peak = peakInput ? parseFloat(peakInput.value) : 260000;
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const origHtml = submitBtn ? submitBtn.innerHTML : 'Lưu Bảng Giá';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Đang lưu...';
+    }
 
     try {
         await apiFetch(`/api/pitches/${pitchId}`, {
@@ -652,6 +694,11 @@ async function handleUpdatePricingSubmit(e) {
         loadPricingTable();
     } catch (err) {
         showToast(`Lỗi cập nhật bảng giá: ${err.message}`, 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origHtml;
+        }
     }
 }
 // LEFT SLIDE-OVER DRAWER NAVIGATION
@@ -2305,11 +2352,11 @@ async function loadBookings(manual = false) {
                 approveBtn = '<button disabled class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 cursor-not-allowed px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-300 whitespace-nowrap"><i class="fa-solid fa-circle-check text-emerald-700"></i> Đã Duyệt</button>';
                 const bookingEnd = new Date(`${b.booking_date}T${b.end_time}:00`);
                 if (bookingEnd <= new Date()) {
-                    completeBtn = `<button onclick="completeBooking(${b.id})" class="inline-flex items-center gap-1 bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap" title="Xác nhận khách đã trả sân"><i class="fa-solid fa-flag-checkered"></i> Xong</button>`;
+                    completeBtn = `<button onclick="completeBooking(${b.id}, this)" class="inline-flex items-center gap-1 bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap" title="Xác nhận khách đã trả sân"><i class="fa-solid fa-flag-checkered"></i> Xong</button>`;
                 }
             } else if (b.status === 'PENDING') {
                 statusBadge = '<span class="px-3.5 py-1 rounded-full text-xs font-extrabold bg-amber-400 text-slate-900 shadow-sm border border-amber-500 whitespace-nowrap inline-flex items-center justify-center min-w-max">CHỜ DUYỆT</span>';
-                approveBtn = `<button onclick="confirmBookingAndInvoice(${b.id})" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap"><i class="fa-solid fa-check"></i> Duyệt</button>`;
+                approveBtn = `<button onclick="confirmBookingAndInvoice(${b.id}, this)" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition shadow whitespace-nowrap"><i class="fa-solid fa-check"></i> Duyệt</button>`;
             } else {
                 statusBadge = '<span class="px-3.5 py-1 rounded-full text-xs font-extrabold bg-rose-500 text-white shadow-sm border border-rose-400 whitespace-nowrap inline-flex items-center justify-center min-w-max">ĐÃ HỦY</span>';
                 approveBtn = '<button disabled class="inline-flex items-center gap-1 bg-rose-100 text-rose-700 cursor-not-allowed px-2.5 py-1 rounded-lg text-xs font-bold border border-rose-300 whitespace-nowrap">Đã Hủy</button>';
@@ -2330,7 +2377,7 @@ async function loadBookings(manual = false) {
                             ${canManage ? `<button onclick="openEditBookingModal(${b.id})" class="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap" title="Sửa / Đổi lịch đặt sân"><i class="fa-solid fa-pen-to-square"></i> Đổi Lịch</button>` : ''}
                             ${approveBtn}
                             ${completeBtn}
-                            ${canManage ? `<button onclick="cancelAdminBooking(${b.id})" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap" title="Hủy đơn"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+                            ${canManage ? `<button onclick="cancelAdminBooking(${b.id}, this)" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap" title="Hủy đơn"><i class="fa-solid fa-trash-can"></i></button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -2357,35 +2404,68 @@ function setBookingDateFilter(mode) {
     loadBookings();
 }
 
-async function confirmBookingAndInvoice(bookingId) {
+async function confirmBookingAndInvoice(bookingId, btn = null) {
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang duyệt...';
+    }
     try {
         const data = await apiFetch(`/api/bookings/${bookingId}/confirm-and-send-invoice`, {
             method: 'POST'
         });
         showToast(data.message || 'Đã duyệt đơn và gửi hóa đơn thành công', 'success');
         loadBookings();
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) {
+        showToast(e.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
 }
 
-async function cancelAdminBooking(bookingId) {
+async function cancelAdminBooking(bookingId, btn = null) {
     if (!confirm('Bạn có chắc chắn muốn hủy đơn đặt sân này?')) return;
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    }
     try {
         await apiFetch(`/api/bookings/${bookingId}/cancel`, {
             method: 'POST'
         });
         showToast('Đã hủy đơn thành công', 'success');
         loadBookings();
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) {
+        showToast(e.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
 }
 
-async function completeBooking(bookingId) {
+async function completeBooking(bookingId, btn = null) {
     if (!confirm('Xác nhận khách đã trả sân và hoàn tất lượt thuê? Các khoản chưa thanh toán vẫn cần được xử lý riêng.')) return;
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Xong...';
+    }
     try {
         const data = await apiFetch(`/api/bookings/${bookingId}/complete`, { method: 'POST' });
         showToast(data.message || 'Đã hoàn tất đơn đặt sân', 'success');
         loadBookings();
         loadBookingMatrix();
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) {
+        showToast(e.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
 }
 
 // DASHBOARD STATS
