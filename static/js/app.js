@@ -4396,7 +4396,7 @@ async function sendRealAIEmail() {
         }
 
         if (data.mode !== 'LIVE_SMTP' || data.success !== true) {
-            showToast(data.message || 'Email chưa được gửi. Vui lòng kiểm tra cấu hình SMTP.', 'error');
+            showToast('⚠️ Không thể gửi trực tiếp qua Gmail: Cần dùng App Password 16 ký tự. Đã lưu nháp vào Hộp thư hệ thống.', 'warning');
             return;
         }
 
@@ -4608,7 +4608,7 @@ async function sendRealEmailFromDialog() {
         } else if (res.mode === 'LOCAL_OUTBOX') {
             showToast(`📧 ${res.message || 'Thư đã lưu vào Outbox hệ thống (Cấu hình SMTP Gmail App Password để gửi email thật)'}`, 'info');
         } else if (res.mode === 'SMTP_ERROR' || res.success === false) {
-            showToast(`⚠️ Lỗi SMTP: ${res.message || 'Không thể gửi qua SMTP máy chủ'}`, 'error');
+            showToast('⚠️ Không thể gửi trực tiếp qua Gmail: Cần dùng App Password 16 ký tự. Đã lưu nháp vào Hộp thư hệ thống.', 'warning');
         } else {
             showToast(res.message || `Đã gửi email xác nhận đến ${email} thành công!`, 'success');
         }
