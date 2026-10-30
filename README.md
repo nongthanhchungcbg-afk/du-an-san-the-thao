@@ -4,6 +4,17 @@
 
 ---
 
+## 🌐 ĐƯỜNG LINK CHÍNH THỨC CỦA DỰ ÁN (CLOUD PRODUCTION)
+* **Đường link chính thức của sản phẩm:** https://du-an-san-the-thao.onrender.com
+* **Tài liệu API Swagger:** https://du-an-san-the-thao.onrender.com/docs
+
+### 👥 Danh Sách Tài Khoản Đăng Nhập Thử Nghiệm:
+* **Tài khoản Quản trị viên (ADMIN):** `nongthanhchung` / Mật khẩu: `Admin` (Toàn quyền quản trị)
+* **Tài khoản Nhân viên lễ tân (STAFF):** `nguyenvanloc` / Mật khẩu: `Nhanvien` (Duyệt lịch, xếp sân)
+* **Tài khoản Khách hàng mẫu (CUSTOMER):** `hoangtrituong` / Mật khẩu: `Khachhang` (Đặt sân, ví cá nhân, hỏi AI)
+
+---
+
 ## 🚀 Hướng dẫn Chạy Dự Án Trên Visual Studio Code
 
 ### Cách 1: Chạy nhanh bằng file `run.bat` (Khuyên dùng trên Windows)

@@ -300,8 +300,10 @@ def create_installation_guide_docx(output_path):
     add_code_block("uvicorn app.main:app --reload --port 8000 --host 0.0.0.0")
 
     add_p("Bước 5: Truy cập hệ thống trên trình duyệt:")
-    add_p("• Trang chủ ứng dụng Web: http://127.0.0.1:8000")
-    add_p("• Tài liệu tương tác API Swagger UI: http://127.0.0.1:8000/docs")
+    add_p("• Trang chủ ứng dụng Web (Local): http://127.0.0.1:8000")
+    add_p("• Tài liệu tương tác API Swagger UI (Local): http://127.0.0.1:8000/docs")
+    add_p("• Đường link chính thức của sản phẩm: https://du-an-san-the-thao.onrender.com")
+    add_p("• Tài liệu API Swagger: https://du-an-san-the-thao.onrender.com/docs")
 
     # 6. TÀI KHOẢN MẪU
     add_sec_heading("6. TÀI KHOẢN ĐĂNG NHẬP THỬ NGHIỆM")
