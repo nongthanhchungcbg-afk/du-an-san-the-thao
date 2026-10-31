@@ -76,7 +76,7 @@ def test_forgot_password_reports_smtp_failure(monkeypatch):
 
 def test_forgot_password_rejects_unregistered_email():
     response = client.post("/api/auth/send-otp", json={
-        "email_or_username": "nongthanhchungcbg@gmail.com"
+        "email_or_username": "nonexistent_email_999999@test.com"
     })
 
     assert response.status_code == 404

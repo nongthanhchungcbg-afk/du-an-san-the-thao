@@ -95,7 +95,22 @@ class AIService:
         booking_keywords = ["trống", "đặt sân", "còn sân", "khung giờ", "mấy giờ", "giờ đá", "sáng mai", "chiều nay", "tối nay", "ngày mai", "ngày kia", "hôm nay", "đến", "h -", "h đến"]
         has_hour = bool(re.search(r'\d{1,2}(?:h|:00|:30)', q))
         has_keyword = any(k in q for k in booking_keywords)
-        return (has_hour and has_keyword) or ("sân trống" in q) or ("đặt lịch" in q) or ("có sân" in q and "không" in q) or ("khung giờ" in q) or ("gợi ý" in q)
+        return (
+            (has_hour and has_keyword)
+            or ("sân trống" in q)
+            or ("còn trống" in q)
+            or ("còn sân" in q)
+            or ("có sân" in q)
+            or ("đặt sân" in q)
+            or ("đặt lịch" in q)
+            or ("khung giờ" in q)
+            or ("gợi ý" in q)
+            or ("tìm sân" in q)
+            or ("kiểm tra sân" in q)
+            or ("mấy giờ" in q)
+            or ("sân nào" in q)
+            or ("sân" in q and "trống" in q)
+        )
 
     @staticmethod
     def parse_time_and_date(query: str, default_date: str) -> Dict[str, Any]:
@@ -288,7 +303,7 @@ class AIService:
             }
 
         # 7. Bóng đá & Cầu lông & Tennis & Bóng rổ
-        if any(k in q for k in ["bóng đá", "cầu lông", "tennis", "bóng rổ", "kỹ thuật", "luật", "smash", "forehand", "sút bóng"]):
+        if any(k in q for k in ["kỹ thuật", "luật thi đấu", "luật sân", "luật bóng đá", "luật cầu lông", "smash", "forehand", "sút bóng", "sút mu"]):
             return {
                 "reply": (
                     "🏆 **HƯỚNG DẪN KỸ THUẬT & LUẬT THI ĐẤU THỂ THAO:**\n\n"
@@ -388,6 +403,20 @@ class AIService:
                 or slot["start_time"] == req_start
             ]
 
+        q_lower = user_query.lower()
+        if any(w in q_lower for w in ["bóng đá", "đá bóng", "football", "sân bóng"]):
+            sport_matched = [s for s in matching_slots if s.get("sport_type") in ("FOOTBALL", "Bóng đá")]
+            if sport_matched:
+                matching_slots = sport_matched
+        elif any(w in q_lower for w in ["cầu lông", "badminton"]):
+            sport_matched = [s for s in matching_slots if s.get("sport_type") in ("BADMINTON", "Cầu lông")]
+            if sport_matched:
+                matching_slots = sport_matched
+        elif any(w in q_lower for w in ["tennis", "quần vợt"]):
+            sport_matched = [s for s in matching_slots if s.get("sport_type") in ("TENNIS", "Tennis")]
+            if sport_matched:
+                matching_slots = sport_matched
+
         if not matching_slots:
             matching_slots = [s for s in available_slots if s.get("booking_date") == target_date][:4]
 
@@ -413,7 +442,7 @@ class AIService:
                     f"   - 📍 **Vị trí:** {s.get('location', 'Cơ sở 1: 128 Z115, Tân Thịnh, Thái Nguyên')}"
                 )
             
-            slots_list_text = "\n\n".join(suggestions_formatted)
+            slots_list_text = "\n\n".join(suggestions_formatted[:3])
             resp_text = (
                 f"🎯 **AI ĐÃ PHÂN TÍCH DỮ LIỆU CSDL VÀ TÌM THẤY {len(matching_slots[:3])} KHUNG GIỜ TRỐNG PHÙ HỢP:**\n\n"
                 f"{slots_list_text}\n\n"

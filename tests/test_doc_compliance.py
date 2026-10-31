@@ -64,6 +64,12 @@ def get_admin_headers():
     return {"Authorization": f"Bearer {token}"}
 
 def test_customers_crud():
+    from app.database import SessionLocal
+    from app.models import Customer
+    _db = SessionLocal()
+    _db.query(Customer).filter(Customer.phone.in_(['0912345678', '0987654321'])).delete(synchronize_session=False)
+    _db.commit()
+    _db.close()
     # 1. Create Customer
     res_create = client.post("/api/customers", json={
         "name": "Nguyen Van Báo Cáo",
